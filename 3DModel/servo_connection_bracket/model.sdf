@@ -1,0 +1,121 @@
+<?xml version='1.0'?>
+<sdf version='1.4'>
+  <model name="servo_connection_bracket">
+    <static>true</static>
+
+    <link name='bracket'>
+      <pose>0 0 0.03 0 0 0</pose>
+      <!-- Middle part -->
+      <collision name='collision'>
+        <geometry>
+          <box>
+            <size>0.6 0.2 0.04</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name='visual'>
+        <geometry>
+          <box>
+            <size>0.6 0.2 0.04</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 0 0 0.6</ambient>
+        </material>
+      </visual>
+
+      <!-- Left arm part -->
+      <collision name='left_arm_collision'>
+        <pose>-0.28 0 0.2 0 1.57 0</pose>
+        <geometry>
+          <box>
+            <size>0.4 0.2 0.04</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name='left_arm_visual'>
+        <pose>-0.28 0 0.2 0 1.57 0</pose>
+        <geometry>
+          <box>
+            <size>0.4 0.2 0.04</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 0 0 0.6</ambient>
+        </material>
+      </visual>
+
+      <!-- Left arm mount circle -->
+      <collision name='left_arm_mount_collision'>
+        <pose>-0.28 0 0.4 0 1.57 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.1</radius>
+            <length>0.04</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <visual name='left_arm_mount_visual'>
+        <pose>-0.28 0 0.4 0 1.57 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.1</radius>
+            <length>0.04</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0 0 0 0.6</ambient>
+        </material>
+      </visual>
+
+      <!-- Right arm part -->
+      <collision name='right_arm_collision'>
+        <pose>0.28 0 0.2 0 1.57 0</pose>
+        <geometry>
+          <box>
+            <size>0.4 0.2 0.04</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name='right_arm_visual'>
+        <pose>0.28 0 0.2 0 1.57 0</pose>
+        <geometry>
+          <box>
+            <size>0.4 0.2 0.04</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 0 0 0.6</ambient>
+        </material>
+      </visual>
+
+      <!-- Right arm mount circle -->
+      <collision name='right_arm_mount_collision'>
+        <pose>0.28 0 0.4 0 1.57 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.1</radius>
+            <length>0.04</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <visual name='right_arm_mount_visual'>
+        <pose>0.28 0 0.4 0 1.57 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.1</radius>
+            <length>0.04</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0 0 0 0.6</ambient>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

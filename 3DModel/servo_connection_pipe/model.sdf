@@ -1,0 +1,80 @@
+<?xml version='1.0'?>
+<sdf version='1.4'>
+  <model name="servo_connection_pipe">
+    <static>false</static>
+
+    <link name='pipe'>
+      <pose>0 0 0 0 0 0</pose>
+
+      <!-- Middle pipe element -->
+      <collision name='collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.07</radius>
+            <length>0.4</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <visual name='visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.07</radius>
+            <length>0.4</length>
+          </cylinder>
+        </geometry>
+        <material>          <!-- middle pipe color -->
+          <ambient>0 0 175 0.3</ambient>
+        </material>
+      </visual>
+
+      <!-- First cylinder element -->
+      <collision name='cylinder_0_collision'>
+        <pose>0 0 0.215 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.03</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <visual name='cylinder_0_visual'>
+        <pose>0 0 0.215 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.03</length>
+          </cylinder>
+        </geometry>
+        <material>          <!-- upper pipe color -->
+          <ambient>0 0 175 0.3</ambient>
+        </material>
+      </visual>
+
+      <!-- First cylinder element -->
+      <collision name='cylinder_1_collision'>
+        <pose>0 0 -0.215 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.03</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <visual name='cylinder_1_visual'>
+        <pose>0 0 -0.215 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.03</length>
+          </cylinder>
+        </geometry>
+        <material>          <!-- lower pipe color -->
+          <ambient>0 0 175 0.3</ambient>
+        </material>
+      </visual>
+    </link>
+  </model>
+</sdf>

@@ -1,0 +1,98 @@
+<?xml version='1.0'?>
+<sdf version='1.4'>
+  <model name="servo_double_joint">
+    <static>false</static>
+    <link name='chassis'>
+      <pose>0 0 0 0 0 0</pose>
+      <!-- Main body shape and collision -->
+      <collision name='collision'>
+        <geometry>
+          <box>
+            <size>0.5 0.2 0.4</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name='visual'>
+        <geometry>
+          <box>
+            <size>0.5 0.2 0.4</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 124 73 0.77</ambient>
+        </material>
+      </visual>
+    </link>
+
+    <!-- Servo holder shape and collision -->
+    <link name='holder'>
+      <pose>0 0 0 0 0 0</pose>
+      <collision name='collision'>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.5</length>
+          </cylinder>
+        </geometry>
+      </collision>
+
+      <visual name='visual'>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.5</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0 50 73 0.77</ambient>
+        </material>
+      </visual>
+
+      <!-- Servo holder block to see movement -->
+      <!--
+      <collision name='holder_block_collision'>
+        <pose>0 0 0.285 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.05 0.4 0.07</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name='holder_block_visual'>
+        <pose>0 0 0.285 0 0 0</pose>
+        <geometry>
+          <box>
+            <size>0.05 0.4 0.07</size>
+          </box>
+        </geometry>
+      </visual>
+      -->
+    </link>
+
+    <!-- Make the holder move -->
+    <joint type="revolute" name="holder_rotation">
+      <pose>0 0 0 0 0 0</pose>
+      <child>holder</child>
+      <parent>chassis</parent>
+      <axis>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>
+
+    <!-- Remove friction for now
+              <surface>
+               <friction>
+                 <ode>
+                   <mu>0</mu>
+                   <mu2>0</mu2>
+                   <slip1>1.0</slip1>
+                   <slip2>1.0</slip2>
+                 </ode>
+               </friction>
+              </surface>
+              -->
+
+  </model>
+</sdf>
