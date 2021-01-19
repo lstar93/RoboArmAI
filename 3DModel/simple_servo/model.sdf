@@ -1,36 +1,39 @@
 <?xml version='1.0'?>
 <sdf version='1.4'>
   <model name="simple_servo">
-  	<static>false</static>
-  	  <link name='chassis'>
-            <pose>0 0 0.2 0 0 0</pose>
-	<!-- Main body shape and collision -->
-            <collision name='collision'>
-              <geometry>
-                <box>
-                  <size>0.5 0.2 0.4</size>
-                </box>
-              </geometry>
-            </collision>
+    <static>false</static>
+    <link name='chassis'>
+      <pose>0 0 0.2 0 0 0</pose>
+      <inertial>
+        <mass>10</mass>
+      </inertial>
+      <!-- Main body shape and collision -->
+      <collision name='collision'>
+        <geometry>
+          <box>
+            <size>0.5 0.2 0.4</size>
+          </box>
+        </geometry>
+      </collision>
 
-            <visual name='visual'>
-              <geometry>
-                <box>
-                  <size>0.5 0.2 0.4</size>
-                </box>
-              </geometry>
-            </visual>
-            
-        <!-- Holder shape and collision -->
-            <collision name='holder_collision'>
-              <pose>0.1 0 0.225 0 0 0</pose>
-              <geometry>
-                <cylinder>
-                  <radius>0.08</radius>
-                  <length>0.05</length>
-                </cylinder>
-              </geometry>
-              <!-- Remove friction for now
+      <visual name='visual'>
+        <geometry>
+          <box>
+            <size>0.5 0.2 0.4</size>
+          </box>
+        </geometry>
+      </visual>
+
+      <!-- Holder shape and collision -->
+      <collision name='holder_collision'>
+        <pose>0.1 0 0.225 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <!-- Remove friction for now
               <surface>
                <friction>
                  <ode>
@@ -42,29 +45,29 @@
                </friction>
               </surface>
               -->
-            </collision>
+      </collision>
 
-            <visual name='holder_visual'>
-              <pose>0.1 0 0.225 0 0 0</pose>
-              <geometry>
-                <cylinder>
-                  <radius>0.08</radius>
-                  <length>0.05</length>
-                </cylinder>
-              </geometry>
-            </visual>
-          </link>
-          
-        <!-- Moving servo block -->
-          <link name="servo_sweeper">
-            <pose>0.1025 0 0.485 0 0 0</pose>
-            <collision name='collision'>
-              <geometry>
-                <box>
-                  <size>0.05 0.4 0.07</size>
-                </box>
-              </geometry>
-              <!-- Remove friction for now
+      <visual name='holder_visual'>
+        <pose>0.1 0 0.225 0 0 0</pose>
+        <geometry>
+          <cylinder>
+            <radius>0.08</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+      </visual>
+    </link>
+
+    <!-- Moving servo block -->
+    <link name="servo_sweeper">
+      <pose>0.1025 0 0.485 0 0 0</pose>
+      <collision name='collision'>
+        <geometry>
+          <box>
+            <size>0.05 0.4 0.07</size>
+          </box>
+        </geometry>
+        <!-- Remove friction for now
               <surface>
                <friction>
                  <ode>
@@ -76,26 +79,30 @@
                </friction>
               </surface>
               -->
-            </collision>
+      </collision>
 
-            <visual name='visual'>
-              <geometry>
-                <box>
-                  <size>0.05 0.4 0.07</size>
-                </box>
-              </geometry>
-            </visual>
-          </link>
-          
-        <!-- Make the sweeper move -->
-          <joint type="revolute" name="servo_sweeper_hinge">
-           <pose>0 0 0 0 0 0</pose>
-           <child>servo_sweeper</child>
-           <parent>chassis</parent>
-           <axis>
-            <xyz>0 0 1</xyz>
-           </axis>
-          </joint>
-      
+      <visual name='visual'>
+        <geometry>
+          <box>
+            <size>0.05 0.4 0.07</size>
+          </box>
+        </geometry>
+      </visual>
+    </link>
+
+    <!-- Make the sweeper move -->
+    <joint type="revolute" name="servo_sweeper_hinge">
+      <pose>0 0 0 0 0 0</pose>
+      <child>servo_sweeper</child>
+      <parent>chassis</parent>
+      <axis>
+        <limit>
+          <lower>-1.57</lower>
+          <upper>1.57</upper>
+        </limit>
+        <xyz>0 0 1</xyz>
+      </axis>
+    </joint>
+
   </model>
 </sdf>

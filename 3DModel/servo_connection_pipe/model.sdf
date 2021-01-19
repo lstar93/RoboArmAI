@@ -4,6 +4,7 @@
     <static>false</static>
 
     <link name='pipe'>
+      <gravity>0</gravity>
       <pose>0 0 0 0 0 0</pose>
 
       <!-- Middle pipe element -->

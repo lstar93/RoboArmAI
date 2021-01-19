@@ -3,7 +3,11 @@
   <model name="servo_single_joint">
     <static>false</static>
     <link name='chassis'>
+      <gravity>0</gravity>
       <pose>0 0 0 0 0 0</pose>
+      <inertial>
+        <mass>1</mass>
+      </inertial>
       <!-- Main body shape and collision -->
       <collision name='collision'>
         <geometry>
@@ -27,6 +31,7 @@
 
     <!-- Servo holder shape and collision -->
     <link name='holder'>
+      <gravity>0</gravity>
       <pose>0.1 0 0.225 0 0 0</pose>
       <collision name='collision'>
         <geometry>
@@ -77,6 +82,10 @@
       <child>holder</child>
       <parent>chassis</parent>
       <axis>
+        <limit>
+          <lower>-1.57</lower>
+          <upper>1.57</upper>
+        </limit>
         <xyz>0 0 1</xyz>
       </axis>
     </joint>

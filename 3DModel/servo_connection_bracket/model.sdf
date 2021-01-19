@@ -4,7 +4,7 @@
     <static>true</static>
 
     <link name='bracket'>
-
+      <gravity>0</gravity>
       <pose>0 0 0 0 0 0</pose>
       <!-- Connector axis part -->
       <collision name='collision'>
