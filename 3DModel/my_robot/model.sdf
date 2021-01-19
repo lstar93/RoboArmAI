@@ -1,7 +1,7 @@
 <?xml version='1.0'?>
 <sdf version='1.4'>
   <model name="my_robo">
-    <static>false</static>
+    <static>true</static>
 
     <link name='base'>
       <pose>0 0 0.1 0 0 0</pose>
@@ -44,6 +44,17 @@
     <joint name="servo_single_0_double_0_joint" type="fixed">
       <child>servo_double_joint::chassis</child>
       <parent>servo_single_joint::holder</parent>
+    </joint>
+
+    <!-- Add double servo bracket -->
+    <include>
+      <uri>model://servo_connection_bracket</uri>
+      <name>bracket_0</name> <!-- Add name to make multiple add possible -->
+      <pose>0.3 0 0.75 1.57 -0.785 0</pose>
+    </include>
+    <joint name="servo_double_0_connector_0_joint" type="fixed">
+      <child>servo_connection_bracket::bracket</child>
+      <parent>servo_double_joint::holder</parent>
     </joint>
 
   </model>

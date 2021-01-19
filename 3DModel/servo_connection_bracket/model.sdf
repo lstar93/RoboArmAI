@@ -4,21 +4,24 @@
     <static>true</static>
 
     <link name='bracket'>
-      <pose>0 0 0.03 0 0 0</pose>
-      <!-- Middle part -->
+
+      <pose>0 0 0 0 0 0</pose>
+      <!-- Connector axis part -->
       <collision name='collision'>
         <geometry>
-          <box>
-            <size>0.6 0.2 0.04</size>
-          </box>
+          <cylinder>
+            <radius>0.025</radius>
+            <length>0.58</length>
+          </cylinder>
         </geometry>
       </collision>
 
       <visual name='visual'>
         <geometry>
-          <box>
-            <size>0.6 0.2 0.04</size>
-          </box>
+          <cylinder>
+            <radius>0.025</radius>
+            <length>0.58</length>
+          </cylinder>
         </geometry>
         <material>
           <ambient>0 0 0 0.6</ambient>
@@ -27,7 +30,13 @@
 
       <!-- Left arm part -->
       <collision name='left_arm_collision'>
-        <pose>-0.28 0 0.2 0 1.57 0</pose>
+        <!-- 
+          0.27 = 
+          0.2 is 1/2 servo Z 
+        + 0.02 is 1/2 of bracket Z 
+        + 0.05 is 1/2 holder out of servo 
+        -->
+        <pose>0.2 0 0.27 0 0 0</pose>
         <geometry>
           <box>
             <size>0.4 0.2 0.04</size>
@@ -36,7 +45,7 @@
       </collision>
 
       <visual name='left_arm_visual'>
-        <pose>-0.28 0 0.2 0 1.57 0</pose>
+        <pose>0.2 0 0.27 0 0 0</pose>
         <geometry>
           <box>
             <size>0.4 0.2 0.04</size>
@@ -49,7 +58,7 @@
 
       <!-- Left arm mount circle -->
       <collision name='left_arm_mount_collision'>
-        <pose>-0.28 0 0.4 0 1.57 0</pose>
+        <pose>0 0 0.27 0 0 0</pose>
         <geometry>
           <cylinder>
             <radius>0.1</radius>
@@ -59,7 +68,7 @@
       </collision>
 
       <visual name='left_arm_mount_visual'>
-        <pose>-0.28 0 0.4 0 1.57 0</pose>
+        <pose>0 0 0.27 0 0 0</pose>
         <geometry>
           <cylinder>
             <radius>0.1</radius>
@@ -73,7 +82,13 @@
 
       <!-- Right arm part -->
       <collision name='right_arm_collision'>
-        <pose>0.28 0 0.2 0 1.57 0</pose>
+        <!-- 
+          0.27 = 
+          0.2 is 1/2 servo Z 
+        + 0.02 is 1/2 of bracket Z 
+        + 0.05 is 1/2 holder out of servo 
+        -->
+        <pose>0.2 0 -0.27 0 0 0</pose>
         <geometry>
           <box>
             <size>0.4 0.2 0.04</size>
@@ -82,7 +97,7 @@
       </collision>
 
       <visual name='right_arm_visual'>
-        <pose>0.28 0 0.2 0 1.57 0</pose>
+        <pose>0.2 0 -0.27 0 0 0</pose>
         <geometry>
           <box>
             <size>0.4 0.2 0.04</size>
@@ -95,7 +110,7 @@
 
       <!-- Right arm mount circle -->
       <collision name='right_arm_mount_collision'>
-        <pose>0.28 0 0.4 0 1.57 0</pose>
+        <pose>0 0 -0.27 0 0 0</pose>
         <geometry>
           <cylinder>
             <radius>0.1</radius>
@@ -105,7 +120,7 @@
       </collision>
 
       <visual name='right_arm_mount_visual'>
-        <pose>0.28 0 0.4 0 1.57 0</pose>
+        <pose>0 0 -0.27 0 0 0</pose>
         <geometry>
           <cylinder>
             <radius>0.1</radius>
@@ -116,6 +131,34 @@
           <ambient>0 0 0 0.6</ambient>
         </material>
       </visual>
+
+      <!-- Middle part -->
+      <collision name='middle_bar_collision'>
+        <pose>0.4 0 0 0 1.57 0</pose>
+        <geometry>
+          <box>
+            <size>0.58 0.2 0.04</size>
+          </box>
+        </geometry>
+      </collision>
+
+      <visual name='middle_bar_visual'>
+        <pose>0.4 0 0 0 1.57 0</pose>
+        <geometry>
+          <box>
+            <!-- 
+            0.58 = 
+            0.5 from servo holder height 
+            + 0.08 is 2 * 0.04 holder arms Z
+            -->
+            <size>0.58 0.2 0.04</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0 0 0 0.6</ambient>
+        </material>
+      </visual>
+
     </link>
   </model>
 </sdf>
