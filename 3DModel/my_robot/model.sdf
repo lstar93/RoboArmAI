@@ -39,10 +39,11 @@
     <!-- Add first bottom double servo -->
     <include>
       <uri>model://servo_double_joint</uri>
+      <name>double_servo_0</name>
       <pose>0.3 0 0.75 1.57 0 0</pose>
     </include>
     <joint name="servo_single_0_double_0_joint" type="fixed">
-      <child>servo_double_joint::chassis</child>
+      <child>double_servo_0::chassis</child>
       <parent>servo_single_joint::holder</parent>
     </joint>
 
@@ -50,11 +51,72 @@
     <include>
       <uri>model://servo_connection_bracket</uri>
       <name>bracket_0</name> <!-- Add name to make multiple add possible -->
-      <pose>0.3 0 0.75 1.57 -0.785 0</pose>
+        <!-- 
+          0.75 = 
+          0.2 is base size
+        + 0.4 is first servo size
+        + 0.05 is first servo holder size
+        + 0.1 is 1/2 of second servo horizontal size
+        -->
+      <pose>0.3 0 0.75 1.57 -1.57 0</pose>
     </include>
-    <joint name="servo_double_0_connector_0_joint" type="fixed">
-      <child>servo_connection_bracket::bracket</child>
-      <parent>servo_double_joint::holder</parent>
+    <joint name="servo_double_0_bracket_0_joint" type="fixed">
+      <child>bracket_0::bracket</child>
+      <parent>double_servo_0::holder</parent>
+    </joint>
+    <include>
+      <uri>model://servo_connection_bracket</uri>
+      <name>bracket_1</name> <!-- Add name to make multiple add possible -->
+        <!-- 
+          0.3 = 
+          0.2 is bracket front panel size 
+        + 0.1 is 1/2 of bracket front panel size 
+
+          1.55 = 
+          0.75 is Z position of first bracket
+        + 0.4 is first bracket arms Z size
+        + 0.4 is second bracket arms Z size
+        -->
+      <pose>0.3 0 1.55 1.57 1.57 0</pose>
+    </include>
+    <joint name="bracket_0_bracket_1_joint" type="fixed">
+      <child>bracket_1::bracket</child>
+      <parent>bracket_0::bracket</parent>
+    </joint>
+
+    <!-- Add souble servo at the bracket end -->
+    <include>
+      <uri>model://servo_double_joint</uri>
+      <name>double_servo_1</name>
+      <pose>0.3 0 1.55 1.57 1.57 0</pose>
+    </include>
+    <joint name="servo_double_1_bracket_1_joint" type="fixed">
+      <child>double_servo_1::chassis</child>
+      <parent>bracket_1::bracket</parent>
+    </joint>
+
+    <!-- Add second souble servo pipe connector -->
+    <include>
+      <uri>model://servo_connection_pipe</uri>
+      <name>pipe_0</name>
+        <!-- 
+          0.3 = middle of the first bottom servo holder
+
+          2.03 = 
+          0.2 is half of pipe height from zero point
+        + 0.03 end cylinder height
+        + 0.2 is base height
+        + 0.4 is first servo size
+        + 0.05 is first servo holder size
+        + 0.1 is half of horizontal servo size
+        + 0.8 is 2 * 0.4 whis is bracket arm size
+        + 0.25 is half of the vertical servo size
+        -->
+      <pose>0.3 0 2.03 0 0 0</pose>
+    </include>
+    <joint name="servo_double_1_pipe_0_joint" type="fixed">
+      <child>double_servo_1::chassis</child>
+      <parent>bracket_1::bracket</parent>
     </joint>
 
   </model>

@@ -134,7 +134,12 @@
 
       <!-- Middle part -->
       <collision name='middle_bar_collision'>
-        <pose>0.4 0 0 0 1.57 0</pose>
+        <!-- 
+        0.38 = 
+        0.4 is arm size 
+        - 0.02 is 1/2 of middle bar Z size
+        -->
+        <pose>0.38 0 0 0 1.57 0</pose>
         <geometry>
           <box>
             <size>0.58 0.2 0.04</size>
@@ -143,7 +148,7 @@
       </collision>
 
       <visual name='middle_bar_visual'>
-        <pose>0.4 0 0 0 1.57 0</pose>
+        <pose>0.38 0 0 0 1.57 0</pose>
         <geometry>
           <box>
             <!-- 
