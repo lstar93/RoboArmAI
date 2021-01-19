@@ -91,7 +91,7 @@
       <pose>0.3 0 1.55 1.57 1.57 0</pose>
     </include>
     <joint name="servo_double_1_bracket_1_joint" type="fixed">
-      <child>double_servo_1::chassis</child>
+      <child>double_servo_1::holder</child>
       <parent>bracket_1::bracket</parent>
     </joint>
 
@@ -115,8 +115,8 @@
       <pose>0.3 0 2.03 0 0 0</pose>
     </include>
     <joint name="servo_double_1_pipe_0_joint" type="fixed">
-      <child>double_servo_1::chassis</child>
-      <parent>bracket_1::bracket</parent>
+      <child>pipe_0::pipe</child>
+      <parent>double_servo_1::chassis</parent>
     </joint>
 
   </model>
