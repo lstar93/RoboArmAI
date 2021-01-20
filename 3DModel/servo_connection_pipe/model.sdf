@@ -6,7 +6,9 @@
     <link name='pipe'>
       <gravity>0</gravity>
       <pose>0 0 0 0 0 0</pose>
-
+      <inertial>
+        <mass>0.1</mass>
+      </inertial>
       <!-- Middle pipe element -->
       <collision name='collision'>
         <geometry>
