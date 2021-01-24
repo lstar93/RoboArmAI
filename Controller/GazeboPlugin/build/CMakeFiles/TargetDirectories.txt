@@ -1,3 +1,0 @@
-/home/lukas/Desktop/RoboArmGIT/RoboArmAI/Controller/GazeboPlugin/build/CMakeFiles/rebuild_cache.dir
-/home/lukas/Desktop/RoboArmGIT/RoboArmAI/Controller/GazeboPlugin/build/CMakeFiles/edit_cache.dir
-/home/lukas/Desktop/RoboArmGIT/RoboArmAI/Controller/GazeboPlugin/build/CMakeFiles/roboarm_plugin.dir
