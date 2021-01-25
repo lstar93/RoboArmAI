@@ -8,17 +8,16 @@ if [ "$1" = "clean" ]; then
     exit 0
 fi
 
-if [ -d "build" ]; then
-    rm -rf build
-fi
-
-mkdir build
-cd build
-
-if [ "$1" = "Release" ]; then
+if [ ! -d "build" ]; then
+    mkdir build
+    cd build
+    if [ "$1" = "Release" ]; then
     cmake -DCMAKE_BUILD_TYPE=Release ../ 
+    else
+        cmake -DCMAKE_BUILD_TYPE=Debug ../
+    fi
 else
-    cmake -DCMAKE_BUILD_TYPE=Debug ../
+    cd build
 fi
 
 make -j4
