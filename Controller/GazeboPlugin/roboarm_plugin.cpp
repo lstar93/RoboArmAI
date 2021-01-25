@@ -45,7 +45,7 @@ namespace gazebo
       */
   }
 
-  void RoboArmPlugin::setJointPositionPID(physics::JointPtr p_joint, common::PID &r_pid)
+  void RoboArmPlugin::SetJointPositionPID(physics::JointPtr p_joint, common::PID &r_pid)
   {
     this->model->GetJointController()->SetPositionPID(
         p_joint->GetScopedName(), r_pid);
