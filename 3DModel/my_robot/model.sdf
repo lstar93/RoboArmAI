@@ -46,7 +46,7 @@
       <name>double_servo_0</name>
       <pose>0.3 0 0.75 1.57 0 3.15</pose>
     </include>
-    <joint name="servo_single_0_double_servo_0_joint" type="fixed">
+    <joint name="servo_single_0_servo_double_0_joint" type="fixed">
       <child>double_servo_0::chassis</child>
       <parent>single_servo_0::holder</parent>
     </joint>
