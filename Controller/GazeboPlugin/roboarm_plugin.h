@@ -21,8 +21,10 @@ namespace gazebo
     virtual void Load(physics::ModelPtr _model, sdf::ElementPtr _sdf);
 
     void SetJointPositionPID(physics::JointPtr p_joint, common::PID &r_pid);
+    void SetJointVelocityPID(physics::JointPtr p_joint, common::PID &r_pid);
 
-    void SetJointTargetPosition(physics::JointPtr p_joint, double pos_in_radians);
+    void SetJointTargetPosition(physics::JointPtr p_joint, double pos_in_radians, double min_pos = -1.57, double max_pos = 1.57);
+    void SetJointTargetVelocity(physics::JointPtr p_joint, uint8_t vel_in_meters_per_sec, uint8_t max_vel = 5);
 
   private:
     /// \brief Pointer to the model.

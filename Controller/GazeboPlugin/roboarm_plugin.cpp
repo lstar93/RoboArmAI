@@ -1,6 +1,3 @@
-#ifndef _VELODYNE_PLUGIN_HH_
-#define _VELODYNE_PLUGIN_HH_
-
 #include "roboarm_plugin.h"
 
 namespace gazebo
@@ -10,7 +7,7 @@ namespace gazebo
     // Safety check
     if (_model->GetJointCount() == 0)
     {
-      std::cerr << "Invalid joint count, Velodyne plugin not loaded\n";
+      std::cerr << "Invalid joint count, RoboArm plugin not loaded\n";
       return;
     }
 
@@ -23,7 +20,7 @@ namespace gazebo
     for (const auto &j_num : modelJointIDs)
     {
       auto joint = _model->GetJoints()[j_num];
-      setJointPositionPID(joint, position_pid);
+      SetJointPositionPID(joint, position_pid);
       SetJointTargetPosition(joint, 0.75);
     }
 
@@ -47,24 +44,38 @@ namespace gazebo
 
   void RoboArmPlugin::SetJointPositionPID(physics::JointPtr p_joint, common::PID &r_pid)
   {
-    this->model->GetJointController()->SetPositionPID(
-        p_joint->GetScopedName(), r_pid);
+    this->model->GetJointController()->SetPositionPID(p_joint->GetScopedName(), r_pid);
   }
 
-  void RoboArmPlugin::SetJointTargetPosition(physics::JointPtr p_joint, double pos_in_radians)
+  void RoboArmPlugin::SetJointVelocityPID(physics::JointPtr p_joint, common::PID &r_pid)
   {
-    if (pos_in_radians > 1.57)
+    this->model->GetJointController()->SetVelocityPID(p_joint->GetScopedName(), r_pid);
+  }
+
+  void RoboArmPlugin::SetJointTargetPosition(physics::JointPtr p_joint, double pos_in_radians, double min_pos, double max_pos)
+  {
+    if (pos_in_radians > max_pos)
     {
-      std::cout << "ERROR: target postion can't be larger than 1.57" << std::endl;
-      pos_in_radians = 1.57;
+      std::cout << "ERROR: target postion can't be larger than " << max_pos << "!" << std::endl;
+      pos_in_radians = max_pos;
     }
-    else if (pos_in_radians < -1.57)
+    else if (pos_in_radians < min_pos)
     {
-      std::cout << "ERROR: target postion can't be less than -1.57" << std::endl;
-      pos_in_radians = -1.57;
+      std::cout << "ERROR: target postion can't be less than " << min_pos << "!" << std::endl;
+      pos_in_radians = min_pos;
     }
-    this->model->GetJointController()->SetPositionTarget(
-        p_joint->GetScopedName(), pos_in_radians);
+    
+    this->model->GetJointController()->SetPositionTarget(p_joint->GetScopedName(), pos_in_radians);
+  }
+
+  void RoboArmPlugin::SetJointTargetVelocity(physics::JointPtr p_joint, uint8_t vel_in_meters_per_sec, uint8_t max_vel)
+  {
+    if (vel_in_meters_per_sec > max_vel)
+    {
+      std::cout << "ERROR: target velocity can't be larger than " << max_vel << " meters per second!" << std::endl;
+      vel_in_meters_per_sec = max_vel;
+    }
+
+    this->model->GetJointController()->SetPositionTarget(p_joint->GetScopedName(), vel_in_meters_per_sec);
   }
 } // namespace gazebo
-#endif
