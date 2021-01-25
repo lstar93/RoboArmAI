@@ -32,39 +32,52 @@ namespace gazebo
 
       // Get the first joint. We are making an assumption about the model
       // having one joint that is the rotational joint.
-      this->joint_0 = _model->GetJoints()[0];
-      this->joint_1 = _model->GetJoints()[2];
-      this->joint_2 = _model->GetJoints()[6];
-      this->joint_3 = _model->GetJoints()[9];
-      this->joint_4 = _model->GetJoints()[12];
+      this->position_pid = common::PID(20, 1, 20); // Setup a PID-controller.
+      for (const auto &j_num : modelJointIDs)
+      {
+        auto joint = _model->GetJoints()[j_num];
+        setJointPositionPID(joint, position_pid);
+        SetJointTargetPosition(joint, 0.75);
+      }
 
+      /*
+      // set first joint
+      joint_0 = _model->GetJoints()[0];
+      
       // Setup a PID-controller.
-      this->pid = common::PID(20, 1, 20);
+      // this->pid = common::PID(20, 1, 20);
 
       // Apply the PID-controller to the joint.
       this->model->GetJointController()->SetPositionPID(
           this->joint_0->GetScopedName(), this->pid);
-      this->model->GetJointController()->SetPositionPID(
-          this->joint_1->GetScopedName(), this->pid);
-      this->model->GetJointController()->SetPositionPID(
-          this->joint_2->GetScopedName(), this->pid);
-      this->model->GetJointController()->SetPositionPID(
-          this->joint_3->GetScopedName(), this->pid);
-      this->model->GetJointController()->SetPositionPID(
-          this->joint_4->GetScopedName(), this->pid);
-
+      
       // Set the joint's target velocity. This target velocity is just
       // for demonstration purposes.
       this->model->GetJointController()->SetPositionTarget(
           this->joint_0->GetScopedName(), 0.75);
+      */
+    }
+
+    void setJointPositionPID(physics::JointPtr p_joint, common::PID &r_pid)
+    {
+      this->model->GetJointController()->SetPositionPID(
+          p_joint->GetScopedName(), r_pid);
+    }
+
+    void SetJointTargetPosition(physics::JointPtr p_joint, double pos_in_radians)
+    {
+      if (pos_in_radians > 1.57)
+      {
+        std::cout << "ERROR: target postion can't be larger than 1.57" << std::endl;
+        pos_in_radians = 1.57;
+      }
+      else if (pos_in_radians < -1.57)
+      {
+        std::cout << "ERROR: target postion can't be less than -1.57" << std::endl;
+        pos_in_radians = -1.57;
+      }
       this->model->GetJointController()->SetPositionTarget(
-          this->joint_1->GetScopedName(), -0.75);
-      this->model->GetJointController()->SetPositionTarget(
-          this->joint_2->GetScopedName(), 0.75);
-      this->model->GetJointController()->SetPositionTarget(
-          this->joint_3->GetScopedName(), 0.75);
-      this->model->GetJointController()->SetPositionTarget(
-          this->joint_4->GetScopedName(), 0.75);
+          p_joint->GetScopedName(), pos_in_radians);
     }
 
   private:
@@ -72,14 +85,12 @@ namespace gazebo
     physics::ModelPtr model;
 
     /// \brief Pointer to the joint.
-    physics::JointPtr joint_0;
-    physics::JointPtr joint_1;
-    physics::JointPtr joint_2;
-    physics::JointPtr joint_3;
-    physics::JointPtr joint_4;
+    // physics::JointPtr joint_0;
+
+    const std::vector<uint8_t> modelJointIDs{0, 2, 6, 9, 12};
 
     /// \brief A PID controller for the joint.
-    common::PID pid;
+    common::PID position_pid;
   };
 
   // Tell Gazebo about this plugin, so that Gazebo can call Load on this plugin.
