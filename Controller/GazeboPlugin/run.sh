@@ -9,7 +9,7 @@ fi
 if [ -f "libroboarm_plugin.so" ]; then
     export GAZEBO_MODEL_PATH=$GAZEBO_MODEL_PATH:${PWD%/*/*}/3DModel/
     export GAZEBO_IP=127.0.0.1
-    export LD_LIBRARY_PATH=${PWD}
+    export LD_LIBRARY_PATH=${PWD}:/opt/ros/noetic/lib
     gazebo $arg roboarm.world
 else
     echo "Can't fing plugin library, please run make.sh to build first!"

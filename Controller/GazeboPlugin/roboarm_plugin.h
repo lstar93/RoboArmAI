@@ -3,6 +3,12 @@
 
 #include <gazebo/gazebo.hh>
 #include <gazebo/physics/physics.hh>
+#include <thread>
+#include "ros/ros.h"
+#include "ros/callback_queue.h"
+#include "ros/subscribe_options.h"
+#include "std_msgs/Float32.h"
+#include "std_msgs/Float64MultiArray.h"
 
 namespace gazebo
 {
@@ -72,12 +78,26 @@ namespace gazebo
         /// \brief A PID controller for the joint.
         common::PID position_pid;
 
-        // ROS INTERFACE
+        // GAZEBO EXTERNAL INTERFACE
         /// \brief A node used for transport
         transport::NodePtr node;
         /// \brief A subscriber to a named topic.
         transport::SubscriberPtr subscriber;
-        void OnMsg(ConstVector3dPtr &_msg);
+        /// \brief Callback for ros topic
+        void JointPositionCallback(ConstVector3dPtr &_msg);
+
+        // ROS INTERFACE
+        /// \brief A node use for ROS transport
+        std::unique_ptr<ros::NodeHandle> rosNode;
+        /// \brief A ROS subscriber
+        ros::Subscriber rosSub_0, rosSub_1;
+        /// \brief A ROS callbackqueue that helps process messages
+        ros::CallbackQueue rosQueue;
+        /// \brief A thread the keeps running the rosQueue
+        std::thread rosQueueThread;
+        void SingleJointPositionCallbackROS(const std_msgs::Float64MultiArrayConstPtr &_RosMsg);
+        void AllJointsPositionCallbackROS(const std_msgs::Float64MultiArrayConstPtr &_RosMsg);
+        void QueueThread();
     };
 
     // Tell Gazebo about this plugin, so that Gazebo can call Load on this plugin.

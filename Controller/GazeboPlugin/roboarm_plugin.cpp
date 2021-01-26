@@ -1,10 +1,11 @@
 #include "roboarm_plugin.h"
 
-template<class SINK, class ... ARGS>
-void PRINT_MESSAGE(SINK s, const std::string& msg, ARGS... args) {
-	#ifdef PRINT_VERBOSE
-		fprintf(s, (msg + "\n").c_str(), std::forward<ARGS>(args)...);
-	#endif
+template <class SINK, class... ARGS>
+void PRINT_MESSAGE(SINK s, const std::string &msg, ARGS... args)
+{
+#ifdef PRINT_VERBOSE
+	fprintf(s, (msg + "\n").c_str(), std::forward<ARGS>(args)...);
+#endif
 }
 
 namespace gazebo
@@ -26,7 +27,7 @@ namespace gazebo
 		this->position_pid = common::PID(30, 5, 60); // Setup a PID-controller.
 		uint8_t jId = 0;
 
-		PRINT_MESSAGE(stderr,""); // print new line
+		PRINT_MESSAGE(stderr, ""); // print new line
 		for (const auto &j_num : modelJointPositions)
 		{
 			auto tmp_joint = _model->GetJoints()[j_num];
@@ -41,22 +42,23 @@ namespace gazebo
 			// SetJointTargetPosition(joint, joint_base_position);
 
 			// fprintf(stderr, "Joint %s pushed with id %d\n", joint.name.c_str(), joint.id);
-			PRINT_MESSAGE(stderr,"Joint %s pushed with id %d", joint.name.c_str(), joint.id);
+			PRINT_MESSAGE(stderr, "Joint %s pushed with id %d", joint.name.c_str(), joint.id);
 
 			// Access directly via gazebo type
 			// auto joint = _model->GetJoints()[j_num];
 			// SetJointPositionPID(joint, position_pid);
 			// SetJointTargetPosition(joint, 0.75);
 		}
-		PRINT_MESSAGE(stderr,""); // print new line
+		PRINT_MESSAGE(stderr, ""); // print new line
 
 		JOINTS_NUMBER = joints.size(); // or _model->GetJointCount()
 
 		auto ret = SetJointsPositions({0.75, 0.75, 0.75, 0.75, 0.75});
 
-		// ROS topic communication
-		//for (const auto &joint : joints)
-		//{
+		// GAZEBO external topic communication code
+		/*{
+			//for (const auto &joint : joints)
+			//{
 			// Create the node
 			this->node = transport::NodePtr(new transport::Node());
 #if GAZEBO_MAJOR_VERSION < 8
@@ -69,15 +71,51 @@ namespace gazebo
 			PRINT_MESSAGE(stderr, "Topic name is %s", topicName.c_str());
 
 			// Subscribe to the topic, and register a callback
-			this->subscriber = this->node->Subscribe(topicName, &RoboArmPlugin::OnMsg, this);
-		//}
+			this->subscriber = this->node->Subscribe(topicName, &RoboArmPlugin::JointPositionCallback, this);
+			//}
+		}*/
+
+		// Create our ROS node. This acts in a similar manner to the Gazebo node
+		{
+			// Initialize ros, if it has not already bee initialized.
+			if (!ros::isInitialized())
+			{
+				int argc = 0;
+				char **argv = NULL;
+				ros::init(argc, argv, "gazebo_client", ros::init_options::NoSigintHandler);
+			}
+
+			this->rosNode.reset(new ros::NodeHandle("gazebo_client"));
+
+			// Create a named topic, and subscribe to it.
+			ros::SubscribeOptions so_0 =
+				ros::SubscribeOptions::create<std_msgs::Float64MultiArray>(
+					"/" + this->model->GetName() + "/single_joint_position",
+					1,
+					std::bind(&RoboArmPlugin::SingleJointPositionCallbackROS, this, std::placeholders::_1),
+					ros::VoidPtr(), &this->rosQueue);
+			this->rosSub_0 = this->rosNode->subscribe(so_0);
+
+			// Create a named topic, and subscribe to it.
+			ros::SubscribeOptions so_1 =
+				ros::SubscribeOptions::create<std_msgs::Float64MultiArray>(
+					"/" + this->model->GetName() + "/all_joints_positions",
+					1,
+					std::bind(&RoboArmPlugin::AllJointsPositionCallbackROS, this, std::placeholders::_1),
+					ros::VoidPtr(), &this->rosQueue);
+			this->rosSub_1 = this->rosNode->subscribe(so_1);
+
+			// Spin up the queue helper thread.
+			this->rosQueueThread = std::thread(std::bind(&RoboArmPlugin::QueueThread, this));
+		}
 	}
 
-	void RoboArmPlugin::OnMsg(ConstVector3dPtr &_msg)
+	// External gazebo communication
+	void RoboArmPlugin::JointPositionCallback(ConstVector3dPtr &_msg)
 	{
 		auto id = static_cast<int>(_msg->x());
 		auto pos = static_cast<double>(_msg->y());
-		PRINT_MESSAGE(stderr, "Callback invoked from external program, joint %d will be set to %f position", id, pos);
+
 		for (auto &joint : joints)
 		{
 			if (joint.id == id)
@@ -86,7 +124,65 @@ namespace gazebo
 				return;
 			}
 		}
+		PRINT_MESSAGE(stderr, "Incorrect joint ID %d, maximum joint number is %d", id, JOINTS_NUMBER);
 	}
+
+	//// External ROS communication
+	void RoboArmPlugin::SingleJointPositionCallbackROS(const std_msgs::Float64MultiArrayConstPtr &_RosMsg)
+	{
+		PRINT_MESSAGE(stderr, "ENTER: SingleJointPositionCallbackROS");
+
+		if (_RosMsg->data.size() != 2)
+		{
+			PRINT_MESSAGE(stderr, "Insufficient variables number, should be 2 instead of %d", _RosMsg->data.size());
+			return;
+		}
+
+		auto id = static_cast<int>(_RosMsg->data[0]);
+		auto pos = static_cast<double>(_RosMsg->data[1]);
+
+		for (auto &joint : joints)
+		{
+			if (joint.id == id)
+			{
+				SetJointTargetPosition(joint, pos);
+				return;
+			}
+		}
+		PRINT_MESSAGE(stderr, "Incorrect joint ID %d, maximum joint number is %d", id, JOINTS_NUMBER);
+	}
+
+	void RoboArmPlugin::AllJointsPositionCallbackROS(const std_msgs::Float64MultiArrayConstPtr &_RosMsg)
+	{
+		PRINT_MESSAGE(stderr, "ENTER: AllJointsPositionCallbackROS");
+
+		if (_RosMsg->data.size() != JOINTS_NUMBER)
+		{
+			PRINT_MESSAGE(stderr, "Insufficient variables number, should be %d instead of %d", JOINTS_NUMBER, _RosMsg->data.size());
+		}
+
+		auto cnt = 0;
+		for (auto &joint : joints)
+		{
+			if (joint.id == cnt)
+			{
+				SetJointTargetPosition(joint, _RosMsg->data[cnt++]);
+				continue;
+			}
+			PRINT_MESSAGE(stderr, "Joint %d wasn't found!", cnt);
+		}
+	}
+
+	// ROS helper function that processes messages
+	void RoboArmPlugin::QueueThread()
+	{
+		static const double timeout = 0.01;
+		while (this->rosNode->ok())
+		{
+			this->rosQueue.callAvailable(ros::WallDuration(timeout));
+		}
+	}
+	////
 
 	int RoboArmPlugin::SetJointsPositions(const std::vector<double> &positions)
 	{

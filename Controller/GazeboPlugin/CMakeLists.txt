@@ -2,6 +2,11 @@ project(RoboArmGazeboPlugin)
 
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
+find_package(roscpp REQUIRED)
+find_package(std_msgs REQUIRED)
+include_directories(${roscpp_INCLUDE_DIRS})
+include_directories(${std_msgs_INCLUDE_DIRS})
+
 if (PRINT_VERBOSE)
   add_definitions(-DPRINT_VERBOSE)
 endif()
@@ -14,7 +19,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
 
 # Build our plugin
 add_library(roboarm_plugin SHARED roboarm_plugin.cpp)
-target_link_libraries(roboarm_plugin ${GAZEBO_LIBRARIES})
+target_link_libraries(roboarm_plugin ${GAZEBO_LIBRARIES} ${roscpp_LIBRARIES})
 target_include_directories(roboarm_plugin PUBLIC ${PROJECT_SOURCE_DIR})
 
 # Build the stand-alone test program
