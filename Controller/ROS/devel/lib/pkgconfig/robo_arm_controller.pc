@@ -1,0 +1,8 @@
+prefix=/home/lukas/Desktop/RoboArmGIT/RoboArmAI/Controller/ROS/devel
+
+Name: robo_arm_controller
+Description: Description of robo_arm_controller
+Version: 1.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

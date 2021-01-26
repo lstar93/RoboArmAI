@@ -176,7 +176,7 @@ namespace gazebo
 	// ROS helper function that processes messages
 	void RoboArmPlugin::QueueThread()
 	{
-		static const double timeout = 0.01;
+		static const double timeout = 0.01; 
 		while (this->rosNode->ok())
 		{
 			this->rosQueue.callAvailable(ros::WallDuration(timeout));
