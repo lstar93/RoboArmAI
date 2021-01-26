@@ -13,7 +13,8 @@ namespace gazebo
         physics::JointPtr _this;
         double basePosition, currentPosition, targetPosition;
         double baseVelocity, currentVelocity, targetVelocity;
-        RoboArmJoint(physics::JointPtr j, const std::string &_name, const uint8_t _id, double _basePosition = 0.0) : _this(j), name(_name), id(_id), basePosition(_basePosition), currentPosition(_basePosition) {}
+        RoboArmJoint(physics::JointPtr j, const std::string &_name, const uint8_t _id, double _basePosition = 0.0)
+            : _this(j), name(_name), id(_id), basePosition(_basePosition), currentPosition(_basePosition) {}
 
         explicit operator physics::JointPtr() const { return _this; }
     };
@@ -32,7 +33,7 @@ namespace gazebo
         /// \param[in] _sdf A pointer to the plugin's SDF element.
         virtual void Load(physics::ModelPtr _model, sdf::ElementPtr _sdf);
         void InitializeJointsTopology();
-        int SetManipulatorBasePosition(const std::vector<double>& positions);
+        int SetJointsPositions(const std::vector<double> &positions);
 
         // set position pid
         void SetJointPositionPID(physics::JointPtr p_joint, common::PID &r_pid);
@@ -70,6 +71,13 @@ namespace gazebo
 
         /// \brief A PID controller for the joint.
         common::PID position_pid;
+
+        // ROS INTERFACE
+        /// \brief A node used for transport
+        transport::NodePtr node;
+        /// \brief A subscriber to a named topic.
+        transport::SubscriberPtr subscriber;
+        void OnMsg(ConstVector3dPtr &_msg);
     };
 
     // Tell Gazebo about this plugin, so that Gazebo can call Load on this plugin.
