@@ -4,11 +4,15 @@
 #include <gazebo/gazebo.hh>
 #include <gazebo/physics/physics.hh>
 #include <thread>
+#include <memory>
 #include "ros/ros.h"
 #include "ros/callback_queue.h"
 #include "ros/subscribe_options.h"
+#include "std_msgs/String.h"
 #include "std_msgs/Float32.h"
 #include "std_msgs/Float64MultiArray.h"
+#include <sstream>
+#include "json/json.h"
 
 namespace gazebo
 {
@@ -31,6 +35,17 @@ namespace gazebo
         /// \brief Constructor
     public:
         RoboArmPlugin() {}
+        ~RoboArmPlugin()
+        {
+            // stop configuration publisher thread loop
+            terminatePublisher = true;
+
+            // if publisher worker thread is still alive wait to its end
+            if (confPublisherWorkerThreadPtr->joinable())
+            {
+                confPublisherWorkerThreadPtr->join();
+            }
+        }
 
         /// \brief The load function is called by Gazebo when the plugin is
         /// inserted into simulation
@@ -73,7 +88,7 @@ namespace gazebo
         std::map<const std::string, uint8_t> joints_map;
         size_t JOINTS_NUMBER = 0;
 
-        const std::vector<uint8_t> modelJointPositions{0, 2, 6, 9, 12};
+        const std::vector<uint8_t> modelJointPositions{0, 2, 6, 9, 12}; // hardcoded from gazebo my_robot XML
 
         /// \brief A PID controller for the joint.
         common::PID position_pid;
@@ -90,7 +105,7 @@ namespace gazebo
         /// \brief A node use for ROS transport
         std::unique_ptr<ros::NodeHandle> rosNode;
         /// \brief A ROS subscriber
-        ros::Subscriber rosSub_0, rosSub_1;
+        ros::Subscriber singleJointPositionSubscriber, allJointsPositionSubscriber;
         /// \brief A ROS callbackqueue that helps process messages
         ros::CallbackQueue rosQueue;
         /// \brief A thread the keeps running the rosQueue
@@ -98,6 +113,10 @@ namespace gazebo
         void SingleJointPositionCallbackROS(const std_msgs::Float64MultiArrayConstPtr &_RosMsg);
         void AllJointsPositionCallbackROS(const std_msgs::Float64MultiArrayConstPtr &_RosMsg);
         void QueueThread();
+        ros::Publisher jointsConfigurationPublisher;
+        void JointsConfigurationPublisherWorker();
+        std::unique_ptr<std::thread> confPublisherWorkerThreadPtr;
+        bool terminatePublisher = false;
     };
 
     // Tell Gazebo about this plugin, so that Gazebo can call Load on this plugin.

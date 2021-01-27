@@ -15,7 +15,7 @@ namespace gazebo
 		// Safety check
 		if (_model->GetJointCount() == 0)
 		{
-			PRINT_MESSAGE(stderr, "Invalid joint count, RoboArm plugin not loaded!");
+			PRINT_MESSAGE(stderr, "ERROR: Invalid joint count, RoboArm plugin not loaded!");
 			return;
 		}
 
@@ -24,13 +24,21 @@ namespace gazebo
 
 		// Get the first joint. We are making an assumption about the model
 		// having one joint that is the rotational joint.
-		this->position_pid = common::PID(30, 5, 60); // Setup a PID-controller.
+		this->position_pid = common::PID(30, 1, 30); // Setup a PID-controller.
 		uint8_t jId = 0;
 
 		PRINT_MESSAGE(stderr, ""); // print new line
 		for (const auto &j_num : modelJointPositions)
 		{
-			auto tmp_joint = _model->GetJoints()[j_num];
+			uint8_t tmp_joint = 0;
+			
+			try {
+				tmp_joint = _model->GetJoints().at(j_num);
+			} catch (const std::out_of_range&) {
+				PRINT_MESSAGE(stderr, "ERROR: Joint position %d is out of my_robot model joints array range!", j_num);
+				return;
+			}
+			
 			RoboArmJoint joint(tmp_joint, tmp_joint->GetScopedName(), jId++); // start numbering the roboarm revolute joints from 0
 
 			// push created joint
@@ -39,15 +47,8 @@ namespace gazebo
 
 			// set base position
 			SetJointPositionPID(joint, position_pid);
-			// SetJointTargetPosition(joint, joint_base_position);
 
-			// fprintf(stderr, "Joint %s pushed with id %d\n", joint.name.c_str(), joint.id);
 			PRINT_MESSAGE(stderr, "Joint %s pushed with id %d", joint.name.c_str(), joint.id);
-
-			// Access directly via gazebo type
-			// auto joint = _model->GetJoints()[j_num];
-			// SetJointPositionPID(joint, position_pid);
-			// SetJointTargetPosition(joint, 0.75);
 		}
 		PRINT_MESSAGE(stderr, ""); // print new line
 
@@ -88,25 +89,63 @@ namespace gazebo
 			this->rosNode.reset(new ros::NodeHandle("gazebo_client"));
 
 			// Create a named topic, and subscribe to it.
-			ros::SubscribeOptions so_0 =
+			ros::SubscribeOptions singleJointPositionSubscriberOptions =
 				ros::SubscribeOptions::create<std_msgs::Float64MultiArray>(
 					"/" + this->model->GetName() + "/single_joint_position",
 					1,
 					std::bind(&RoboArmPlugin::SingleJointPositionCallbackROS, this, std::placeholders::_1),
 					ros::VoidPtr(), &this->rosQueue);
-			this->rosSub_0 = this->rosNode->subscribe(so_0);
+			this->singleJointPositionSubscriber = this->rosNode->subscribe(singleJointPositionSubscriberOptions);
 
 			// Create a named topic, and subscribe to it.
-			ros::SubscribeOptions so_1 =
+			ros::SubscribeOptions allJointsPositionSubscriberOptions =
 				ros::SubscribeOptions::create<std_msgs::Float64MultiArray>(
 					"/" + this->model->GetName() + "/all_joints_positions",
 					1,
 					std::bind(&RoboArmPlugin::AllJointsPositionCallbackROS, this, std::placeholders::_1),
 					ros::VoidPtr(), &this->rosQueue);
-			this->rosSub_1 = this->rosNode->subscribe(so_1);
+			this->allJointsPositionSubscriber = this->rosNode->subscribe(allJointsPositionSubscriberOptions);
+
+			// Robot configuration publisher
+			jointsConfigurationPublisher = this->rosNode->advertise<std_msgs::String>("/my_robot/configuration", 1000);
+			confPublisherWorkerThreadPtr = std::make_unique<std::thread>(std::bind(&RoboArmPlugin::JointsConfigurationPublisherWorker, this));
 
 			// Spin up the queue helper thread.
 			this->rosQueueThread = std::thread(std::bind(&RoboArmPlugin::QueueThread, this));
+		}
+	}
+
+	void RoboArmPlugin::JointsConfigurationPublisherWorker()
+	{
+		Json::Value root;
+		Json::Value data;
+		root["name"] = "RoboArm";
+		data["number_of_joints"] = static_cast<int>(JOINTS_NUMBER);
+		root["joints_configuration"] = data;
+		
+		ros::Rate loop_rate(0.25);
+		while (ros::ok())
+		{
+			std_msgs::String msg;
+
+			Json::FastWriter writer;
+			const std::string json_file = writer.write(root);
+
+			std::stringstream ss;
+			ss << json_file.c_str();
+			msg.data = ss.str();
+
+			PRINT_MESSAGE(stderr, "Published configuration: %s", msg.data.c_str());
+
+			jointsConfigurationPublisher.publish(msg);
+
+			ros::spinOnce();
+
+			loop_rate.sleep();
+
+			if(terminatePublisher) {
+				break;
+			}
 		}
 	}
 
@@ -134,7 +173,7 @@ namespace gazebo
 
 		if (_RosMsg->data.size() != 2)
 		{
-			PRINT_MESSAGE(stderr, "Insufficient variables number, should be 2 instead of %d", _RosMsg->data.size());
+			PRINT_MESSAGE(stderr, "Incorrect position array size, should be 2 instead of %d", _RosMsg->data.size());
 			return;
 		}
 
@@ -176,7 +215,7 @@ namespace gazebo
 	// ROS helper function that processes messages
 	void RoboArmPlugin::QueueThread()
 	{
-		static const double timeout = 0.01; 
+		static const double timeout = 0.01;
 		while (this->rosNode->ok())
 		{
 			this->rosQueue.callAvailable(ros::WallDuration(timeout));
@@ -237,7 +276,8 @@ namespace gazebo
 	}
 
 	// Position
-
+	// TODO:
+	//	- read min and max revolute joints position from my_robot model xml
 	void RoboArmPlugin::SetJointTargetPosition(const std::string &joint_name, double pos_in_radians, double min_pos, double max_pos)
 	{
 		if (pos_in_radians > max_pos)
