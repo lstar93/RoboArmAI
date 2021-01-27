@@ -43,7 +43,6 @@ namespace gazebo
 
 			// push created joint
 			joints.push_back(joint);
-			joints_map[joint.name] = joint.id;
 
 			// set base position
 			SetJointPositionPID(joint, position_pid);

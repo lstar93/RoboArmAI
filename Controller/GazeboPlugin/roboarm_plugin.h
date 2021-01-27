@@ -85,7 +85,6 @@ namespace gazebo
 
         /// \brief vector of joints
         std::vector<RoboArmJoint> joints;
-        std::map<const std::string, uint8_t> joints_map;
         size_t JOINTS_NUMBER = 0;
 
         const std::vector<uint8_t> modelJointPositions{0, 2, 6, 9, 12}; // hardcoded from gazebo my_robot XML
