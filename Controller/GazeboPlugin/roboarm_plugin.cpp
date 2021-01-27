@@ -30,7 +30,7 @@ namespace gazebo
 		PRINT_MESSAGE(stderr, ""); // print new line
 		for (const auto &j_num : modelJointPositions)
 		{
-			uint8_t tmp_joint = 0;
+			physics::JointPtr tmp_joint = nullptr;
 			
 			try {
 				tmp_joint = _model->GetJoints().at(j_num);
@@ -107,8 +107,8 @@ namespace gazebo
 			this->allJointsPositionSubscriber = this->rosNode->subscribe(allJointsPositionSubscriberOptions);
 
 			// Robot configuration publisher
-			jointsConfigurationPublisher = this->rosNode->advertise<std_msgs::String>("/my_robot/configuration", 1000);
-			confPublisherWorkerThreadPtr = std::make_unique<std::thread>(std::bind(&RoboArmPlugin::JointsConfigurationPublisherWorker, this));
+			this->jointsConfigurationPublisher = this->rosNode->advertise<std_msgs::String>("/my_robot/configuration", 1000);
+			this->confPublisherWorkerThreadPtr = std::thread(std::bind(&RoboArmPlugin::JointsConfigurationPublisherWorker, this));
 
 			// Spin up the queue helper thread.
 			this->rosQueueThread = std::thread(std::bind(&RoboArmPlugin::QueueThread, this));

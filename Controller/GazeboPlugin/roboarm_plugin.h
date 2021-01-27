@@ -41,9 +41,9 @@ namespace gazebo
             terminatePublisher = true;
 
             // if publisher worker thread is still alive wait to its end
-            if (confPublisherWorkerThreadPtr->joinable())
+            if (confPublisherWorkerThreadPtr.joinable())
             {
-                confPublisherWorkerThreadPtr->join();
+                confPublisherWorkerThreadPtr.join();
             }
         }
 
@@ -115,7 +115,7 @@ namespace gazebo
         void QueueThread();
         ros::Publisher jointsConfigurationPublisher;
         void JointsConfigurationPublisherWorker();
-        std::unique_ptr<std::thread> confPublisherWorkerThreadPtr;
+        std::thread confPublisherWorkerThreadPtr;
         bool terminatePublisher = false;
     };
 
