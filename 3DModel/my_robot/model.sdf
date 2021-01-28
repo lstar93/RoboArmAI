@@ -88,11 +88,11 @@
       <parent>bracket_0::bracket</parent>
     </joint>
 
-    <!-- Add souble servo at the bracket end -->
+    <!-- Add double servo at the bracket end -->
     <include>
       <uri>model://servo_double_joint</uri>
       <name>double_servo_1</name>
-      <pose>0.3 0 1.55 1.57 1.57 0</pose>
+      <pose>0.3 0 1.55 1.57 4.71 0</pose>
     </include>
     <joint name="servo_double_1_bracket_1_joint" type="fixed">
       <child>double_servo_1::holder</child>
@@ -141,7 +141,7 @@
         + 0.4 is pipe height
         + 0.06 = 2 * 0.03 is size of two pipe end connectors
         -->
-      <pose>0.3 0 2.51 0 1.57 1.57</pose>
+      <pose>0.3 0 2.51 1.57 4.71 0</pose>
     </include>
     <joint name="pipe_0_servo_double_2_joint" type="fixed">
       <child>double_servo_2::chassis</child>

@@ -6,13 +6,26 @@
 #include <chrono>
 #include "json/json.h"
 
+/*
+namespace RoboArmController
+{
+    class JointController
+    {
+
+
+        public:
+        
+    }
+} // namespace RoboArmController
+*/
+
 Json::Value configuration;
 bool configurationReady = false;
 void roboArmConfigurationCallback(const std_msgs::String::ConstPtr &inStr)
 {
     std::string strJson = inStr->data.c_str();
 
-    ROS_INFO("strJson: %s", strJson.c_str());
+    // ROS_INFO("strJson: %s", strJson.c_str());
 
     const auto strJsonLength = static_cast<int>(strJson.length());
     JSONCPP_STRING err;
@@ -50,7 +63,15 @@ int main(int argc, char **argv)
     std::vector<double> pose_1;
 
     // Create robot configuration subscriber
-    // example configuration JSON: {"joints_configuration":{"number_of_joints":5},"name":"RoboArm"}
+    /*
+    example configuration JSON: 
+    {"joints_configuration":{"joints":[{"clock_wise_positive":true,"id":0,"name":"my_robot::my_robot::single_servo_0::holder_rotation"},
+    {"clock_wise_positive":true,"id":1,"name":"my_robot::my_robot::double_servo_0::holder_rotation"},
+    {"clock_wise_positive":true,"id":2,"name":"my_robot::my_robot::double_servo_1::holder_rotation"},
+    {"clock_wise_positive":false,"id":3,"name":"my_robot::my_robot::double_servo_2::holder_rotation"}, // -> clock wise negative means that joint need negative radians to move in a clock wise direction
+    {"clock_wise_positive":true,"id":4,"name":"my_robot::my_robot::single_servo_1::holder_rotation"}],
+    "number_of_joints":5},"name":"RoboArm"}
+    */
     auto roboArmConfigurationSubscriber = n.subscribe("/my_robot/configuration", 1000, roboArmConfigurationCallback);
 
     while (!configurationReady)
@@ -63,11 +84,17 @@ int main(int argc, char **argv)
     ROS_INFO("numberOfJoints: %d", numberOfJoints);
     for (int i = 0; i < numberOfJoints; ++i)
     {
-        pose_0.push_back(1.0); // fill pose 0 with 1.0 poses
-        pose_1.push_back(0.5); // fill pose 0 with 0.5 poses
+        int clock_wise_factor = 1;
+
+        if(!configuration["joints_configuration"]["joints"][i]["clock_wise_positive"].asBool()) {
+            clock_wise_factor = -1;
+        }
+
+        pose_0.push_back(clock_wise_factor * 0.8); // fill pose 0 with 1.0 poses
+        pose_1.push_back(clock_wise_factor * 0.3); // fill pose 1 with 0.5 poses
     }
 
-    if (numberOfJoints == -1)
+    if (numberOfJoints == 0) // [] opeartor will return 0 in case of error
     {
         std::cout << "Ups, something went wrong with configuration subscriber, numberOfJoints is -1!" << std::endl;
     }
@@ -86,7 +113,7 @@ int main(int argc, char **argv)
         }
         toggler++;
 
-        // ROS_INFO("%s", msg.data.c_str());
+        // ROS_INFO("%f", msg.data[2]);
 
         chatter_pub.publish(msg);
 

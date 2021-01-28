@@ -20,6 +20,7 @@ namespace gazebo
     {
         const uint8_t id;
         const std::string name;
+        bool clockWisePositive = true;
         physics::JointPtr _this;
         double basePosition, currentPosition, targetPosition;
         double baseVelocity, currentVelocity, targetVelocity;
@@ -80,14 +81,12 @@ namespace gazebo
         /// \brief Pointer to the model.
         physics::ModelPtr model;
 
-        /// \brief Pointer to the joint.
-        // physics::JointPtr joint_0;
-
         /// \brief vector of joints
         std::vector<RoboArmJoint> joints;
         size_t JOINTS_NUMBER = 0;
 
         const std::vector<uint8_t> modelJointPositions{0, 2, 6, 9, 12}; // hardcoded from gazebo my_robot XML
+        const std::vector<bool> modelJointClockWisePositive{true, true, true, false, true}; // hardcoded from gazebo my_robot XML // clock wise negative means that joint need negative radians to move in a clock wise direction
 
         /// \brief A PID controller for the joint.
         common::PID position_pid;

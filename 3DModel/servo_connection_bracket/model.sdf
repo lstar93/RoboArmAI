@@ -9,7 +9,7 @@
       <inertial>
         <mass>0.1</mass>
       </inertial>
-      <!-- Connector axis part -->
+      <!-- Connector axis part
       <collision name='collision'>
         <geometry>
           <cylinder>
@@ -29,7 +29,7 @@
         <material>
           <ambient>0 0 0 0.6</ambient>
         </material>
-      </visual>
+      </visual>-->
 
       <!-- Left arm part -->
       <collision name='left_arm_collision'>

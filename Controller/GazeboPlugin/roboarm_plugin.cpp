@@ -40,6 +40,7 @@ namespace gazebo
 			}
 			
 			RoboArmJoint joint(tmp_joint, tmp_joint->GetScopedName(), jId++); // start numbering the roboarm revolute joints from 0
+			joint.clockWisePositive = modelJointClockWisePositive[joint.id];
 
 			// push created joint
 			joints.push_back(joint);
@@ -53,7 +54,7 @@ namespace gazebo
 
 		JOINTS_NUMBER = joints.size(); // or _model->GetJointCount()
 
-		auto ret = SetJointsPositions({0.75, 0.75, 0.75, 0.75, 0.75});
+		auto ret = SetJointsPositions({0, 0.75, 0.75, -0.75, 0.75});
 
 		// GAZEBO external topic communication code
 		/*{
@@ -120,6 +121,16 @@ namespace gazebo
 		Json::Value data;
 		root["name"] = "RoboArm";
 		data["number_of_joints"] = static_cast<int>(JOINTS_NUMBER);
+		Json::Value jointsDesc;
+		int cnt = 0;
+		for(const auto& j: joints) {
+			Json::Value joint_data;
+			joint_data["name"] = j.name;
+			joint_data["clock_wise_positive"] = j.clockWisePositive;
+			joint_data["id"] = j.id;
+			jointsDesc[cnt++] = joint_data;
+		}
+		data["joints"] = jointsDesc;
 		root["joints_configuration"] = data;
 		
 		ros::Rate loop_rate(0.25);
@@ -134,7 +145,7 @@ namespace gazebo
 			ss << json_file.c_str();
 			msg.data = ss.str();
 
-			PRINT_MESSAGE(stderr, "Published configuration: %s", msg.data.c_str());
+			// PRINT_MESSAGE(stderr, "Published configuration: %s", msg.data.c_str());
 
 			jointsConfigurationPublisher.publish(msg);
 
