@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.2)
-project(robo_arm_controller)
+project(controller)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -104,7 +104,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES robo_arm_controller
+#  LIBRARIES controller
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
@@ -123,7 +123,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/robo_arm_joint_controller.cpp
+#   src/${PROJECT_NAME}/joint_controller.cpp
 # )
 
 ## Add cmake target dependencies of the library

@@ -4,7 +4,10 @@
 import rospy
 from std_msgs.msg import Float64MultiArray
 
-def talker():
+def robot_configuration_callback():
+    return None
+
+def joint_controller():
     pub = rospy.Publisher('/my_robot/all_joints_positions', Float64MultiArray, queue_size=10)
     rospy.init_node('talker', anonymous=True)
     rate = rospy.Rate(0.25) # 0.25hz
@@ -28,6 +31,6 @@ def talker():
 
 if __name__ == '__main__':
     try:
-        talker()
+        joint_controller()
     except rospy.ROSInterruptException:
         pass

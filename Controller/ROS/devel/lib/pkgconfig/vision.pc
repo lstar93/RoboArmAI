@@ -1,0 +1,8 @@
+prefix=/home/lukas/Desktop/RoboArmGIT/RoboArmAI/Controller/ROS/devel
+
+Name: vision
+Description: Description of vision
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

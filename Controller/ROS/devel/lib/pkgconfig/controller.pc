@@ -1,0 +1,8 @@
+prefix=/home/lukas/Desktop/RoboArmGIT/RoboArmAI/Controller/ROS/devel
+
+Name: controller
+Description: Description of controller
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

@@ -1,3 +1,7 @@
+#include "controller/joint_controller.h"
+#ifndef _JOINT_CONTROLLER_H_
+#define _JOINT_CONTROLLER_H_
+
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Float64MultiArray.h"
@@ -6,19 +10,17 @@
 #include <chrono>
 #include "json/json.h"
 
-/*
+
 namespace RoboArmController
 {
     class JointController
     {
 
-
-        public:
-        
-    }
+    };
 } // namespace RoboArmController
-*/
 
+
+#endif
 Json::Value configuration;
 bool configurationReady = false;
 void roboArmConfigurationCallback(const std_msgs::String::ConstPtr &inStr)

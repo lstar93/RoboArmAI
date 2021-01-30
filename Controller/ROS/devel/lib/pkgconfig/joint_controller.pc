@@ -1,0 +1,8 @@
+prefix=/home/lukas/Desktop/RoboArmGIT/RoboArmAI/Controller/ROS/devel
+
+Name: joint_controller
+Description: Description of joint_controller
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

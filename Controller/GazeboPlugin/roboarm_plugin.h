@@ -1,5 +1,5 @@
-#ifndef _ROBOARM_PLUGIN_HH_
-#define _ROBOARM_PLUGIN_HH_
+#ifndef _ROBOARM_PLUGIN_H_
+#define _ROBOARM_PLUGIN_H_
 
 #include <gazebo/gazebo.hh>
 #include <gazebo/physics/physics.hh>
