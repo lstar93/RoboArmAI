@@ -58,6 +58,8 @@ np.set_printoptions(suppress=True)
 def rotation_matrix(rot_joint, angle, size = 3):
     identity_of_size = np.identity(size)
     rot_mtx = np.identity(size-1)
+    if(angle < -2*pi or angle > 2*pi):
+        raise 'Error, angle limits are from -2pi to 2pi'
     if rot_joint == 'x':
         rot_mtx = np.matlib.array([[1,0,0],
                                    [0,cos(angle),-sin(angle)],
@@ -70,6 +72,8 @@ def rotation_matrix(rot_joint, angle, size = 3):
         rot_mtx = np.matlib.array([[cos(angle),-sin(angle),0],
                                    [sin(angle),cos(angle),0],
                                    [0,0,1]])
+    else:
+        raise 'Unknown axis, only known are x, y and z'
     # if size is greater that rot_mtx shape make the rotation matrix part of identity_of_size beggining from the first element
     if identity_of_size.shape[0] != rot_mtx.shape[0]:
         identity_of_size[0:size-1,0:size-1] = rot_mtx
@@ -98,26 +102,32 @@ Tr([x y z]) = [[1 0 0 x],
 
 DH_i-1_i = Rt(Z, Oi) * Tr([0, 0, Ei]^T) * Tr([ai, 0, 0]^T) * Rt(X, Li)
 '''
+
+# Transformation -> move by vector and rotate by angle
+# Translation -> transformation by angle
 # vect = position vector
 # rtm  = rotation matrix, 3x3 identity matrix if no angle transforamtion
-def translation_matrix(vect, rtm = np.identity(3)):
+def translation_matrix(vect, axis='', angle=0):
     if len(vect) != 3:
         raise 'Incorrect number of vector elements, vector dimension should be (1, 3) -> [x y z]'
     else:
-        return np.matlib.array([[rtm.item((0,0)), rtm.item((0,1)), rtm.item((0,2)), vect[0]], 
-                                [rtm.item((1,0)), rtm.item((1,1)), rtm.item((1,2)), vect[1]], 
-                                [rtm.item((2,0)), rtm.item((2,1)), rtm.item((2,2)), vect[2]], 
-                                [     0,               0,               0,             1  ]])
+        if(axis == ''):
+            rtm = np.identity(4)
+        else:
+            rtm = rotation_matrix(axis, angle, 4)
+        rtm[0,3] = vect[0]
+        rtm[1,3] = vect[1]
+        rtm[2,3] = vect[2]
+        return rtm
 '''
-print('translation_matrix (position vector only): ')
+print('translation_matrix (position vector): ')
 print(translation_matrix([1, 2, 3]))
-print('translation_matrix (position vector and x rotation): ')
-print(translation_matrix([1, 2, 3], rotation_matrix('x', pi)))
-print('translation_matrix (position vector and y rotation): ')
-print(translation_matrix([4, 5, 6], rotation_matrix('y', pi)))
-print('translation_matrix (position vector and z rotation): ')
-print(translation_matrix([7, 8, 9], rotation_matrix('z', pi)))
-print()
+print('translation_matrix (position vector and x axis rotation): ')
+print(translation_matrix([1, 2, 3], 'x', pi/2))
+print('translation_matrix (position vector and y axis rotation): ')
+print(translation_matrix([1, 2, 3], 'y', pi/2))
+print('translation_matrix (position vector and z axis rotation): ')
+print(translation_matrix([1, 2, 3], 'z', pi/2))
 '''
 
 def prev_to_curr_joint_transform_matrix(theta_i, epislon_i, a_i, alpha_i):
