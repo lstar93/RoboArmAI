@@ -29,31 +29,27 @@ _____|_____
   4  |  l4  |  0   |   0  |  O4  |
 ----------------------------------
 
-Rotation matrixes
+Rotation matrixes:
+
 Rt(x, L):
     [[1          0        0   ]
      [0        cos(L)  -sin(L)]
      [0        sin(L)   cos(L)]]
 
-    [[1,0,0]
-     [0,cos(L),-sin(L)]
-     [0,sin(L),cos(L)]]
-
 Rt(y, B):
-    [[cos(B),0,sin(B)]
-     [0,1,0]
-     [-sin(B),0,cos(B)]]
+    [[cos(B),    0,     sin(B)]
+     [0,         1,       0   ]
+     [-sin(B),   0,     cos(B)]]
 
 Rt(z, G):
-    [[cos(G),-sin(G),0]
-     [sin(G),cos(G),0]
-     [0,0,1]]
+    [[cos(G), -sin(G),    0   ]
+     [sin(G),  cos(G),    0   ]
+     [0,         0,       1   ]]
 
 '''
 
 import numpy.matlib
 import numpy as np
-import math
 from sympy import sin, cos, pi
 
 # supress printing enormous small numbers like 0.123e-16
