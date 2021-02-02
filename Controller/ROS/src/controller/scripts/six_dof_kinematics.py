@@ -89,7 +89,6 @@ print(rotation_matrix('z', pi))
 print()
 '''
 
-
 '''
 Rt - rotation matrix, identity matrix if no rotation
 Tr - transform matrix
@@ -99,10 +98,7 @@ Tr([x y z]) = [[1 0 0 x],
                [0 1 0 y], 
                [0 0 1 z], 
                [0 0 0 1]]
-
-DH_i-1_i = Rt(Z, Oi) * Tr([0, 0, Ei]^T) * Tr([ai, 0, 0]^T) * Rt(X, Li)
 '''
-
 # Transformation -> move by vector and rotate by angle
 # Translation -> transformation by angle
 # vect = position vector
@@ -130,6 +126,9 @@ print('translation_matrix (position vector and z axis rotation): ')
 print(translation_matrix([1, 2, 3], 'z', pi/2))
 '''
 
+'''
+DH_i-1_i = Rt(Z, Oi) * Tr([0, 0, Ei]^T) * Tr([ai, 0, 0]^T) * Rt(X, Li)
+'''
 def prev_to_curr_joint_transform_matrix(theta_i, epislon_i, a_i, alpha_i):
     size_of_mtx = 4
     rot_mtx_z_theta = rotation_matrix('z', theta_i, size_of_mtx)
