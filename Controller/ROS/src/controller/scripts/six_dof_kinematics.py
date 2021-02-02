@@ -99,8 +99,8 @@ Tr([x y z]) = [[1 0 0 x],
                [0 0 1 z], 
                [0 0 0 1]]
 '''
-# Transformation -> move by vector and rotate by angle
-# Translation -> transformation by angle
+# Translation -> move axis by vector 
+# Transformation -> translate and rotate by angle
 # vect = position vector
 # rtm  = rotation matrix, 3x3 identity matrix if no angle transforamtion
 def translation_matrix(vect, axis='', angle=0):
