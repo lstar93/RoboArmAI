@@ -3,7 +3,6 @@
 # DH notation
 
 '''       
-
       2y |          | 3y
          |     l3   |
          0-->-------0--> 3x
@@ -17,7 +16,6 @@
     \ /
      |
 _____|_____
-
   i  |  ai  |  Li  |  Ei  |  Oi  |
 ----------------------------------
   1  |   0  | pi/2 |  l1  |  O1  |
@@ -28,24 +26,19 @@ _____|_____
 ----------------------------------
   4  |  l4  |  0   |   0  |  O4  |
 ----------------------------------
-
 Rotation matrixes:
-
 Rt(x, L):
     [[1,         0,       0   ]
      [0,       cos(L), -sin(L)]
      [0,       sin(L),  cos(L)]]
-
 Rt(y, B):
     [[cos(B),    0,     sin(B)]
      [0,         1,       0   ]
      [-sin(B),   0,     cos(B)]]
-
 Rt(z, G):
     [[cos(G), -sin(G),    0   ]
      [sin(G),  cos(G),    0   ]
      [0,         0,       1   ]]
-
 '''
 
 import numpy.matlib
@@ -98,7 +91,17 @@ def translation_matrix(vect, axis='', angle=0):
         rtm[1,3] = vect[1]
         rtm[2,3] = vect[2]
         return rtm
+    
+def array_mult(A, B):
+    if len(B) != len(A[0]) and len(A) != len(B[0]):
+        return 'Invalid'
 
+    result = [[0 for x in range(len(B[0]))] for y in range(len(A))]
+    for i in range(len(A)):
+        for j in range(len(B[0])):
+            for k in range(len(B)):
+                result[i][j] += A[i][k] * B[k][j]
+    return result
 
 # DH_i-1_i = Rt(Z, Oi) * Tr([0, 0, Ei]^T) * Tr([ai, 0, 0]^T) * Rt(X, Li)
 def prev_to_curr_joint_transform_matrix(theta_i, epislon_i, a_i, alpha_i):
@@ -107,5 +110,16 @@ def prev_to_curr_joint_transform_matrix(theta_i, epislon_i, a_i, alpha_i):
     tr_mtx_epsilon = translation_matrix([0, 0, epislon_i])
     tr_mtx_a = translation_matrix([a_i, 0, 0])
     rot_mtx_z_alpha = rotation_matrix('x', alpha_i, size_of_mtx)
-    dh_i = np.matmul(np.matmul(rot_mtx_z_theta, tr_mtx_epsilon), np.matmul(tr_mtx_a, rot_mtx_z_alpha))
-    return dh_i
+    dh_i = rot_mtx_z_theta.dot(tr_mtx_epsilon).dot(tr_mtx_a).dot(rot_mtx_z_alpha)
+    return np.array(dh_i)
+
+# Combine all computations into forward kinematics
+def forward_kinematics(thetas, epsilons, ais, alphas):
+    allmtx = []
+    allmtx.append(prev_to_curr_joint_transform_matrix(thetas[0], epsilons[0], ais[0], alphas[0]))
+    cnt = 1
+    for t in thetas[1:]:
+        nextmtx = allmtx[cnt-1].dot(prev_to_curr_joint_transform_matrix(t, epsilons[cnt], ais[cnt], alphas[cnt]))
+        allmtx.append(nextmtx)
+        cnt = cnt + 1
+    return allmtx[-1], allmtx

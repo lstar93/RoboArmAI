@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from sympy import sin, cos, pi
-from six_dof_kinematics import rotation_matrix, translation_matrix, prev_to_curr_joint_transform_matrix
+from six_dof_kinematics import rotation_matrix, translation_matrix, prev_to_curr_joint_transform_matrix, forward_kinematics
 
 class forward_kinematics_unittests(unittest.TestCase):
 
@@ -43,6 +43,18 @@ class forward_kinematics_unittests(unittest.TestCase):
                                    [     0,            0,        -1,        el_1              ], 
                                    [     0,            0,         0,                1         ]])
 
+    # example forward kinematics matrixes
+    f_kine_0 = np.matlib.array([[0.5,0.5,0.70710678,3.41421356],
+                                [0.5,0.5,-0.70710678,3.41421356],
+                                [-0.70710678,0.70710678,0,2],
+                                [0,0,0,1]])
+
+    f_kine_1 = np.matlib.array([[-0.5,-0.5,0.70710678,0],
+                                [-0.5,-0.5,-0.70710678,0],
+                                [0.70710678,-0.70710678,0,6.82842712],
+                                [0,0,0,1]])
+
+
     def test_rotation_matrix(self):
         np.testing.assert_array_almost_equal(self.rot_x_matrix, rotation_matrix('x', pi/2))
         np.testing.assert_array_almost_equal(self.rot_y_matrix, rotation_matrix('y', pi/2))
@@ -60,12 +72,19 @@ class forward_kinematics_unittests(unittest.TestCase):
     def test_prev_to_curr_joint_transform_matrix(self):
         np.testing.assert_array_almost_equal(self.dh_test_arr, prev_to_curr_joint_transform_matrix(pi/2, 3, 5, pi))
 
+    def test_forward_kinematics(self):
+        tout, _ = forward_kinematics([pi/4, pi/4, -pi/4, -pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
+        np.testing.assert_array_almost_equal(self.f_kine_0, tout)
+        tout1, _ = forward_kinematics([pi/4, pi/4, pi/4, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
+        np.testing.assert_array_almost_equal(self.f_kine_1, tout1)
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(forward_kinematics_unittests('test_rotation_matrix'))
     suite.addTest(forward_kinematics_unittests('test_translation_matrix'))
     suite.addTest(forward_kinematics_unittests('test_transformation_matrix'))
     suite.addTest(forward_kinematics_unittests('test_prev_to_curr_joint_transform_matrix'))
+    suite.addTest(forward_kinematics_unittests('test_forward_kinematics'))
     return suite
 
 if __name__ == '__main__':
