@@ -91,17 +91,6 @@ def translation_matrix(vect, axis='', angle=0):
         rtm[1,3] = vect[1]
         rtm[2,3] = vect[2]
         return rtm
-    
-def array_mult(A, B):
-    if len(B) != len(A[0]) and len(A) != len(B[0]):
-        return 'Invalid'
-
-    result = [[0 for x in range(len(B[0]))] for y in range(len(A))]
-    for i in range(len(A)):
-        for j in range(len(B[0])):
-            for k in range(len(B)):
-                result[i][j] += A[i][k] * B[k][j]
-    return result
 
 # DH_i-1_i = Rt(Z, Oi) * Tr([0, 0, Ei]^T) * Tr([ai, 0, 0]^T) * Rt(X, Li)
 def prev_to_curr_joint_transform_matrix(theta_i, epislon_i, a_i, alpha_i):
@@ -123,3 +112,6 @@ def forward_kinematics(thetas, epsilons, ais, alphas):
         allmtx.append(nextmtx)
         cnt = cnt + 1
     return allmtx[-1], allmtx
+
+# out, _ = forward_kinematics([pi/4, pi/4, -pi/4, -pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
+# print(out)
