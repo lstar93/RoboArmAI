@@ -48,7 +48,10 @@ from sympy import sin, cos, pi
 # supress printing enormous small numbers like 0.123e-16
 np.set_printoptions(suppress=True)
 
-
+# Rotation matrix
+# rot_joint -> rotation joint -> 'x', 'y' or 'z'
+# angle -> rotation angle in radians
+# size -> dimention of square matrix, defualt minimum is 3
 def rotation_matrix(rot_joint, angle, size = 3):
     if (angle < -2*pi) or (angle > 2*pi):
         raise Exception('Error, angle limits are from -2pi to 2pi')
@@ -79,18 +82,14 @@ def rotation_matrix(rot_joint, angle, size = 3):
 # Translation -> move axis by vector 
 # Transformation -> translation + rotation by angle
 # vect = position vector
-# rtm  = rotation matrix, 3x3 identity matrix if no angle transforamtion
+# rtm  = rotation matrix, 3x3 identity matrix if no angle given
 def translation_matrix(vect, axis='', angle=0):
     if len(vect) != 3:
         raise Exception('Incorrect vector size, vector dimension should be (1, 3) -> [x y z]')
     else:
-        if(axis == ''):
-            rtm = np.identity(4)
-        else:
-            rtm = rotation_matrix(axis, angle, 4)
-        rtm[0,3] = vect[0]
-        rtm[1,3] = vect[1]
-        rtm[2,3] = vect[2]
+        rtm = np.identity(4) if not axis else rotation_matrix(axis, angle, 4)
+        for x in range(3):
+            rtm[x,3] = vect[x] # fit translated vector x into last column of rotatiom matrix
         return rtm
 
 # DH_i-1_i = Rt(Z, Oi) * Tr([0, 0, Ei]^T) * Tr([ai, 0, 0]^T) * Rt(X, Li)
@@ -113,11 +112,3 @@ def forward_kinematics(thetas, epsilons, ais, alphas):
         nextMatrix = allmtx[elem].dot(prev_to_curr_joint_transform_matrix(thetas[elem+1], epsilons[elem+1], ais[elem+1], alphas[elem+1]))
         allmtx.append(nextMatrix)
     return allmtx[-1], allmtx
-
-'''
-try:
-    out, _ = forward_kinematics([pi/4, pi/4, -pi/4, -pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
-    print(out)
-except Exception as e:
-    print(str(e))
-'''
