@@ -104,8 +104,8 @@ def prev_to_curr_joint_transform_matrix(theta_i, epislon_i, a_i, alpha_i):
 
 # Combine all computations into forward kinematics
 def forward_kinematics(thetas, epsilons, ais, alphas):
-    if any(x < 4 for x in (len(thetas), len(epsilons), len(ais), len(alphas))):
-        raise Exception('All transformation matrix arguments should be vectors size of 4')
+    if not all(x == len(thetas) for x in (len(thetas), len(epsilons), len(ais), len(alphas))):
+        raise Exception('All homogenous matrix arguments size should be equal to robot DOF')
     allmtx = []
     allmtx.append(prev_to_curr_joint_transform_matrix(thetas[0], epsilons[0], ais[0], alphas[0]))
     for elem in range(len(thetas)-1):
