@@ -50,10 +50,12 @@ np.set_printoptions(suppress=True)
 
 
 def rotation_matrix(rot_joint, angle, size = 3):
+    if (angle < -2*pi) or (angle > 2*pi):
+        raise Exception('Error, angle limits are from -2pi to 2pi')
+    if size < 3:
+        raise Exception('Error, rotation matrix siz should be 3 or greater')
     identity_of_size = np.identity(size)
     rot_mtx = np.identity(size-1)
-    if(angle < -2*pi or angle > 2*pi):
-        raise 'Error, angle limits are from -2pi to 2pi'
     if rot_joint == 'x':
         rot_mtx = np.matlib.array([[1,0,0],
                                    [0,cos(angle),-sin(angle)],
@@ -67,21 +69,20 @@ def rotation_matrix(rot_joint, angle, size = 3):
                                    [sin(angle),cos(angle),0],
                                    [0,0,1]])
     else:
-        raise 'Unknown axis, only known are x, y and z'
+        raise Exception('Unknown axis name, only x, y or z are supported')
     # if size is greater that rot_mtx shape make the rotation matrix part of identity_of_size beggining from the first element
-    if identity_of_size.shape[0] != rot_mtx.shape[0]:
+    if size != rot_mtx.shape[0]:
         identity_of_size[0:size-1,0:size-1] = rot_mtx
         return identity_of_size
     return rot_mtx
 
-
 # Translation -> move axis by vector 
-# Transformation -> translate and rotate by angle
+# Transformation -> translation + rotation by angle
 # vect = position vector
 # rtm  = rotation matrix, 3x3 identity matrix if no angle transforamtion
 def translation_matrix(vect, axis='', angle=0):
     if len(vect) != 3:
-        raise 'Incorrect number of vector elements, vector dimension should be (1, 3) -> [x y z]'
+        raise Exception('Incorrect vector size, vector dimension should be (1, 3) -> [x y z]')
     else:
         if(axis == ''):
             rtm = np.identity(4)
@@ -104,14 +105,17 @@ def prev_to_curr_joint_transform_matrix(theta_i, epislon_i, a_i, alpha_i):
 
 # Combine all computations into forward kinematics
 def forward_kinematics(thetas, epsilons, ais, alphas):
+    if any(x < 4 for x in (len(thetas), len(epsilons), len(ais), len(alphas))):
+        raise Exception('All transformation matrix arguments should be vectors size of 4')
     allmtx = []
     allmtx.append(prev_to_curr_joint_transform_matrix(thetas[0], epsilons[0], ais[0], alphas[0]))
-    cnt = 1
-    for t in thetas[1:]:
-        nextmtx = allmtx[cnt-1].dot(prev_to_curr_joint_transform_matrix(t, epsilons[cnt], ais[cnt], alphas[cnt]))
-        allmtx.append(nextmtx)
-        cnt = cnt + 1
+    for elem in range(len(thetas)-1):
+        nextMatrix = allmtx[elem].dot(prev_to_curr_joint_transform_matrix(thetas[elem+1], epsilons[elem+1], ais[elem+1], alphas[elem+1]))
+        allmtx.append(nextMatrix)
     return allmtx[-1], allmtx
 
-# out, _ = forward_kinematics([pi/4, pi/4, -pi/4, -pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
-# print(out)
+try:
+    out, _ = forward_kinematics([pi/4, pi/4, -pi/4, -pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
+    print(out)
+except Exception as e:
+    print(str(e))
