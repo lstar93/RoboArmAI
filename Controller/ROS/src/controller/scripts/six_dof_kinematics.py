@@ -114,8 +114,10 @@ def forward_kinematics(thetas, epsilons, ais, alphas):
         allmtx.append(nextMatrix)
     return allmtx[-1], allmtx
 
+'''
 try:
     out, _ = forward_kinematics([pi/4, pi/4, -pi/4, -pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
     print(out)
 except Exception as e:
     print(str(e))
+'''
