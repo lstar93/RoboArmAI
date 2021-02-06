@@ -89,7 +89,7 @@ def translation_matrix(vect, axis='', angle=0):
     else:
         rtm = np.identity(4) if not axis else rotation_matrix(axis, angle, 4)
         for x in range(3):
-            rtm[x,3] = vect[x] # fit translated vector x into last column of rotatiom matrix
+            rtm[x,3] = vect[x] # fit translated vector x into last column of rotatiom or identity matrix
         return rtm
 
 # DH_i-1_i = Rt(Z, Oi) * Tr([0, 0, Ei]^T) * Tr([ai, 0, 0]^T) * Rt(X, Li)
