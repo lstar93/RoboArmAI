@@ -43,7 +43,8 @@ Rt(z, G):
 
 import numpy.matlib
 import numpy as np
-from sympy import sin, cos, pi
+from sympy import sin, cos, pi, sqrt, atan2, acos
+import math
 
 # supress printing enormous small numbers like 0.123e-16
 np.set_printoptions(suppress=True)
@@ -93,10 +94,10 @@ def translation_matrix(vect, axis='', angle=0):
         return rtm
 
 # DH_i-1_i = Rt(Z, Oi) * Tr([0, 0, Ei]^T) * Tr([ai, 0, 0]^T) * Rt(X, Li)
-def prev_to_curr_joint_transform_matrix(theta_i, epislon_i, a_i, alpha_i):
+def prev_to_curr_joint_transform_matrix(theta_i, epsilon_i, a_i, alpha_i):
     size_of_mtx = 4
     rot_mtx_z_theta = rotation_matrix('z', theta_i, size_of_mtx)
-    tr_mtx_epsilon = translation_matrix([0, 0, epislon_i])
+    tr_mtx_epsilon = translation_matrix([0, 0, epsilon_i])
     tr_mtx_a = translation_matrix([a_i, 0, 0])
     rot_mtx_z_alpha = rotation_matrix('x', alpha_i, size_of_mtx)
     dh_i = rot_mtx_z_theta.dot(tr_mtx_epsilon).dot(tr_mtx_a).dot(rot_mtx_z_alpha)
@@ -112,3 +113,17 @@ def forward_kinematics(thetas, epsilons, ais, alphas):
         nextMatrix = allmtx[elem].dot(prev_to_curr_joint_transform_matrix(thetas[elem+1], epsilons[elem+1], ais[elem+1], alphas[elem+1]))
         allmtx.append(nextMatrix)
     return allmtx[-1], allmtx
+
+# Inverse kinematics https://www.actamechanica.sk/pdfs/ams/2016/03/07.pdf -> inverse kinematics but equeations in paper cover only first 3 joints!!!
+# To cover last joint:
+# for x add '+ (l4 * cos(thetas[1] + thetas[2] + thetas[3])'
+# for y add '+ (l4 * cos(thetas[1] + thetas[2] + thetas[3])'
+# for z add '+ (l4 * sin(thetas[1] + thetas[2] + thetas[3])' !!! WHY THEY HAVE TWO '-' IN TWO LAST EQUATION ELEMS INSTEAD OF '+' ???
+# Specific function for every robot !!!
+def roboarm_inverse_kinematics(thetas, epsilons):
+    if not all(x == len(thetas) for x in (len(thetas), len(epsilons))):
+        raise Exception('Input vectors should be length of 4!')
+    x = float(cos(thetas[0]) * ((epsilons[1] * cos(thetas[1])) + (epsilons[2] * cos(thetas[1] + thetas[2])) + (epsilons[3] * cos(thetas[1] + thetas[2] + thetas[3]))))
+    y = float(sin(thetas[0]) * ((epsilons[1] * cos(thetas[1])) + (epsilons[2] * cos(thetas[1] + thetas[2])) + (epsilons[3] * cos(thetas[1] + thetas[2] + thetas[3]))))
+    z = float(epsilons[0] + (epsilons[1] * sin(thetas[1])) + (epsilons[2] * sin(thetas[1] + thetas[2])) + (epsilons[3] * sin(thetas[1] + thetas[2] + thetas[3])))
+    return [x, y, z]

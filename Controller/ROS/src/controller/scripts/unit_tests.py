@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from sympy import sin, cos, pi
-from six_dof_kinematics import rotation_matrix, translation_matrix, prev_to_curr_joint_transform_matrix, forward_kinematics
+from robot_kinematics import rotation_matrix, translation_matrix, prev_to_curr_joint_transform_matrix, forward_kinematics, roboarm_inverse_kinematics
 
 class forward_kinematics_unittests(unittest.TestCase):
 
@@ -78,6 +78,19 @@ class forward_kinematics_unittests(unittest.TestCase):
         tout1, _ = forward_kinematics([pi/4, pi/4, pi/4, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
         np.testing.assert_array_almost_equal(self.f_kine_1, tout1)
 
+    def test_roboarm_inverse_kinematics(self):
+        for angle in range(1,5):
+            tout, _ = forward_kinematics([pi/4, pi/4, pi/angle, pi/angle], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
+            position = [tout[0, 3], tout[1, 3], tout[2, 3]]
+            inv_k = roboarm_inverse_kinematics([pi/4, pi/4, pi/angle, pi/angle], [2, 2, 2, 2])
+            np.testing.assert_array_almost_equal(position, inv_k)
+        for angle in range(1,5):
+            angle = angle * -1
+            tout, _ = forward_kinematics([pi/4, pi/4, pi/angle, pi/angle], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
+            position = [tout[0, 3], tout[1, 3], tout[2, 3]]
+            inv_k = roboarm_inverse_kinematics([pi/4, pi/4, pi/angle, pi/angle], [2, 2, 2, 2])
+            np.testing.assert_array_almost_equal(position, inv_k)
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(forward_kinematics_unittests('test_rotation_matrix'))
@@ -85,6 +98,7 @@ def suite():
     suite.addTest(forward_kinematics_unittests('test_transformation_matrix'))
     suite.addTest(forward_kinematics_unittests('test_prev_to_curr_joint_transform_matrix'))
     suite.addTest(forward_kinematics_unittests('test_forward_kinematics'))
+    suite.addTest(forward_kinematics_unittests('test_roboarm_inverse_kinematics'))
     return suite
 
 if __name__ == '__main__':
