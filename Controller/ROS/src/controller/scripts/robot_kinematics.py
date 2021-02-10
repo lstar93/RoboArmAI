@@ -119,7 +119,7 @@ def forward_kinematics(thetas, epsilons, ais, alphas):
 # for x add '+ (l4 * cos(thetas[1] + thetas[2] + thetas[3])'
 # for y add '+ (l4 * cos(thetas[1] + thetas[2] + thetas[3])'
 # for z add '+ (l4 * sin(thetas[1] + thetas[2] + thetas[3])' !!! WHY THEY HAVE TWO '-' IN TWO LAST EQUATION ELEMS INSTEAD OF '+' ???
-# Specific function for every robot !!!
+# Unique implementation for every robot!
 def roboarm_inverse_kinematics(thetas, epsilons):
     if not all(x == len(thetas) for x in (len(thetas), len(epsilons))):
         raise Exception('Input vectors should be length of 4!')
