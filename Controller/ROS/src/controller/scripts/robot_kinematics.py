@@ -114,16 +114,51 @@ def forward_kinematics(thetas, epsilons, ais, alphas):
         allmtx.append(nextMatrix)
     return allmtx[-1], allmtx
 
-# Inverse kinematics https://www.actamechanica.sk/pdfs/ams/2016/03/07.pdf -> inverse kinematics but equeations in paper cover only first 3 joints!!!
-# To cover last joint:
+def pow(arg, p):
+    return arg ** p
+
+# Inverse kinematics https://www.actamechanica.sk/pdfs/ams/2016/03/07.pdf -> inverse kinematics
+# equatios to 3rd joint, if theta4 will be added it wouldn't be possible to find it due to 3 equations and 4 variables,
 # for x add '+ (l4 * cos(thetas[1] + thetas[2] + thetas[3])'
 # for y add '+ (l4 * cos(thetas[1] + thetas[2] + thetas[3])'
-# for z add '+ (l4 * sin(thetas[1] + thetas[2] + thetas[3])' !!! WHY THEY HAVE TWO '-' IN TWO LAST EQUATION ELEMS INSTEAD OF '+' ???
+# for z add '+ (l4 * sin(thetas[1] + thetas[2] + thetas[3])
 # Unique implementation for every robot!
-def roboarm_inverse_kinematics(thetas, epsilons):
-    if not all(x == len(thetas) for x in (len(thetas), len(epsilons))):
-        raise Exception('Input vectors should be length of 4!')
-    x = float(cos(thetas[0]) * ((epsilons[1] * cos(thetas[1])) + (epsilons[2] * cos(thetas[1] + thetas[2])) + (epsilons[3] * cos(thetas[1] + thetas[2] + thetas[3]))))
-    y = float(sin(thetas[0]) * ((epsilons[1] * cos(thetas[1])) + (epsilons[2] * cos(thetas[1] + thetas[2])) + (epsilons[3] * cos(thetas[1] + thetas[2] + thetas[3]))))
-    z = float(epsilons[0] + (epsilons[1] * sin(thetas[1])) + (epsilons[2] * sin(thetas[1] + thetas[2])) + (epsilons[3] * sin(thetas[1] + thetas[2] + thetas[3])))
-    return [x, y, z]
+def roboarm_inverse_kinematics(joint_distances, eff_pos = [1, 1, 1]):
+    # if not all(x == len(thetas) for x in (len(thetas), len(epsilons))):
+    #     raise Exception('Input vectors should be length of 4!')
+
+    # Trigonometric equations for forward kinematics
+    # Inverse kinematics till 3rd joint                                                                        #   Inverse kinematics cannot be calculated for all joints analyticaly 
+    #                                                                                                          #   due too many varaibles (4) and too little equations (3)
+    # x0 = float(cos(thetas[0]) * ((epsilons[1] * cos(thetas[1])) + (epsilons[2] * cos(thetas[1] + thetas[2])) # + (epsilons[3] * cos(thetas[1] + thetas[2] + thetas[3]))))
+    # y0 = float(sin(thetas[0]) * ((epsilons[1] * cos(thetas[1])) + (epsilons[2] * cos(thetas[1] + thetas[2])) # + (epsilons[3] * cos(thetas[1] + thetas[2] + thetas[3]))))
+    # z0 = float(epsilons[0] + (epsilons[1] * sin(thetas[1])) + (epsilons[2] * sin(thetas[1] + thetas[2]))     # + (epsilons[3] * sin(thetas[1] + thetas[2] + thetas[3])))
+    
+    xc = eff_pos[0]
+    yc = eff_pos[1]
+    z  = eff_pos[2]
+    e1 = 2
+    e2 = 2
+    e3 = 2
+
+    cos_j3 = (pow(xc,2) + pow(yc,2) + pow((z - e1),2) - pow(e2,2) - pow(e3,2)) / (2 * e2 * e3)
+    sin_j3 = sqrt(1 - pow(cos_j3,2))
+
+    theta_3 = atan2(sin_j3, cos_j3)
+
+    theta_1 = atan2(yc, xc)
+
+    cos_j2 = ((xc/cos(theta_1)) * (-e2-(e3*cos_j3)) + ((z - e1)*e3*sin_j3)) / (-pow(e2,2) - pow(e3,2) - (2 * e2 * e3 * cos_j3))
+    sin_j2 = ((sqrt(1-pow(cos_j2,2))))
+
+    theta_2 = atan2(sin_j2, cos_j2)
+
+    theta_4 = 0 # now just assume always 0 for last joint -> todo
+
+    return [float(theta_1), float(theta_2), float(theta_3), float(theta_4)]
+
+tout, _ = forward_kinematics([2, 3, -3], [2, 0, 0,], [0, 2, 2], [pi/2, 0, 0])
+position = [tout[0, 3], tout[1, 3], tout[2, 3]]
+print(position)
+inv_k = roboarm_inverse_kinematics([2, 2, 2], position)
+print(inv_k)
