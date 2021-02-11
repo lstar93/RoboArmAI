@@ -127,13 +127,14 @@ def roboarm_inverse_kinematics(joint_distances, eff_pos = [1, 1, 1]):
     # if not all(x == len(thetas) for x in (len(thetas), len(epsilons))):
     #     raise Exception('Input vectors should be length of 4!')
 
-    # Trigonometric equations for forward kinematics
-    # Inverse kinematics till 3rd joint                                                                        #   Inverse kinematics cannot be calculated for all joints analyticaly 
+    # Trigonometric equations for forward kinematics                                                           #   Inverse kinematics cannot be calculated for all joints analyticaly 
     #                                                                                                          #   due too many varaibles (4) and too little equations (3)
     # x0 = float(cos(thetas[0]) * ((epsilons[1] * cos(thetas[1])) + (epsilons[2] * cos(thetas[1] + thetas[2])) # + (epsilons[3] * cos(thetas[1] + thetas[2] + thetas[3]))))
     # y0 = float(sin(thetas[0]) * ((epsilons[1] * cos(thetas[1])) + (epsilons[2] * cos(thetas[1] + thetas[2])) # + (epsilons[3] * cos(thetas[1] + thetas[2] + thetas[3]))))
     # z0 = float(epsilons[0] + (epsilons[1] * sin(thetas[1])) + (epsilons[2] * sin(thetas[1] + thetas[2]))     # + (epsilons[3] * sin(thetas[1] + thetas[2] + thetas[3])))
     
+    # Inverse kinematics till 3rd joint   
+
     xc = eff_pos[0]
     yc = eff_pos[1]
     z  = eff_pos[2]
