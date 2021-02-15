@@ -239,17 +239,14 @@ class Fabrik:
         iter_cnt = 0
 
         while (((start_error > self.err_margin) or (goal_error > self.err_margin)) and (self.max_iter_num > iter_cnt)):
-            try :
-                retb = self.backward(current_join_positions, goal_point)
-                start_error = retb[0].distance_to_point(start_point)
-                retf = self.forward(retb, start_point)
-                goal_error = retf[-1].distance_to_point(goal_point)
-                current_join_positions = retf
-                goal_joints_positions = current_join_positions
-                PRINT_MSG('Iteration {} -> start position error = {}, goal position error = {}'.format(iter_cnt, start_error, goal_error), verbose)
-                iter_cnt = iter_cnt + 1
-            except Exception:
-                iter_cnt = iter_cnt + 1
+            retb = self.backward(current_join_positions, goal_point)
+            start_error = retb[0].distance_to_point(start_point)
+            retf = self.forward(retb, start_point)
+            goal_error = retf[-1].distance_to_point(goal_point)
+            current_join_positions = retf
+            goal_joints_positions = current_join_positions
+            PRINT_MSG('Iteration {} -> start position error = {}, goal position error = {}'.format(iter_cnt, start_error, goal_error), verbose)
+            iter_cnt = iter_cnt + 1
 
         if len(goal_joints_positions) == 0:
            return []
