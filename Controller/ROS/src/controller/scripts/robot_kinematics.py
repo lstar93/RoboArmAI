@@ -67,7 +67,6 @@ def round(num):
 # angle -> rotation angle in radians
 # size -> dimention of square matrix, defualt minimum is 3
 def rotation_matrix(rot_joint, angle, size = 3):
-    print(angle)
     if (angle < -2*pi) or (angle > 2*pi):
         raise Exception('Error, angle limits are from -2pi to 2pi')
     if size < 3:
@@ -78,7 +77,6 @@ def rotation_matrix(rot_joint, angle, size = 3):
         rot_mtx = np.matlib.array([[1,0,0],
                                    [0,round(cos(angle)),-round(sin(angle))],
                                    [0,round(sin(angle)),round(cos(angle))]])
-        print(rot_mtx)
     elif rot_joint == 'y':
         rot_mtx = np.matlib.array([[round(cos(angle)),0,round(sin(angle))],
                                   [0,1,0],
@@ -178,32 +176,26 @@ class Fabrik:
     joint_distances = []
     err_margin = 0.0
     max_iter_num = 0
-    plotting_trigger = False
 
-    def __init__(self, init_joints_positions, joint_distances, err_margin = 0.01, max_iter_num = 10):
+    def __init__(self, init_joints_positions, joint_distances, err_margin = 0.0001, max_iter_num = 10):
         self.joint_distances = joint_distances
         self.init_joints_positions = init_joints_positions
         self.err_margin = err_margin
         self.max_iter_num = max_iter_num
-        self.plotting_trigger = False
-
-    def show_plots(self):
-        self.plotting_trigger = True
 
     def plot(self, start_point, goal_point, joints_final_positions):
-        if(self.plotting_trigger):
-            fig = plt.figure()
-            ax = fig.add_subplot(111, projection='3d')
-            ax.set_xlabel('X')
-            ax.set_ylabel('Y')
-            ax.set_zlabel('Z')
-            ax.scatter(start_point.x, start_point.y, start_point.z, color='blue')
-            ax.scatter([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
-            ax.plot3D([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
-            ax.scatter([x.to_list()[0] for x in joints_final_positions], [x.to_list()[1] for x in joints_final_positions], [x.to_list()[2] for x in joints_final_positions], color='pink')
-            ax.plot3D([x.to_list()[0] for x in joints_final_positions], [x.to_list()[1] for x in joints_final_positions], [x.to_list()[2] for x in joints_final_positions], color='pink')
-            ax.scatter(goal_point.x, goal_point.y, goal_point.z, color='orange')
-            plt.show()
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.scatter(start_point.x, start_point.y, start_point.z, color='blue')
+        ax.scatter([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
+        ax.plot3D([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
+        ax.scatter([x.to_list()[0] for x in joints_final_positions], [x.to_list()[1] for x in joints_final_positions], [x.to_list()[2] for x in joints_final_positions], color='pink')
+        ax.plot3D([x.to_list()[0] for x in joints_final_positions], [x.to_list()[1] for x in joints_final_positions], [x.to_list()[2] for x in joints_final_positions], color='pink')
+        ax.scatter(goal_point.x, goal_point.y, goal_point.z, color='orange')
+        plt.show()
         
     # Compute backward iteration
     def backward(self, points, goal_point):
@@ -235,7 +227,7 @@ class Fabrik:
             points_to_ret.append(point_prim)
         return points_to_ret
 
-    def compute_ik(self, goal_eff_pos):
+    def compute_ik(self, goal_eff_pos, verbose=False):
         if not all(x == len(self.init_joints_positions) for x in (len(self.init_joints_positions), len(self.joint_distances))):
             raise Exception('Input vectors should have equal lengths!')
 
@@ -255,7 +247,7 @@ class Fabrik:
                 goal_error = retf[-1].distance_to_point(goal_point)
                 current_join_positions = retf
                 goal_joints_positions = current_join_positions
-                PRINT_MSG('Iteration {} start error = {}, goal error = {}'.format(iter_cnt, start_error, goal_error))
+                PRINT_MSG('Iteration {} -> start position error = {}, goal position error = {}'.format(iter_cnt, start_error, goal_error), verbose)
                 iter_cnt = iter_cnt + 1
             except Exception:
                 iter_cnt = iter_cnt + 1
@@ -263,9 +255,8 @@ class Fabrik:
         if len(goal_joints_positions) == 0:
            return []
 
-        self.plot(start_point, goal_point, goal_joints_positions)
-
-        PRINT_MSG([goal_joints_positions[0].distance_to_point(goal_joints_positions[1]), goal_joints_positions[1].distance_to_point(goal_joints_positions[2]), goal_joints_positions[2].distance_to_point(goal_joints_positions[3])])
+        if(verbose):
+            self.plot(start_point, goal_point, goal_joints_positions)
 
         return goal_joints_positions
 
@@ -273,7 +264,7 @@ class Fabrik:
 # MAIN
 '''
 # Compute positions of all joints in robot init (base) position
-dest_point = [0, -1.9890, 3.7909]
+dest_point = [0, -4.137, 0.8346]
 theta_1 = float(atan2(-dest_point[1], -dest_point[0])) # compute theta_1
 dh_matrix = [[theta_1, pi/2, pi/3, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
 def get_robot_init_joints_position_fk(dh_matrix):
@@ -285,10 +276,10 @@ def get_robot_init_joints_position_fk(dh_matrix):
 
 init_joints_positions = get_robot_init_joints_position_fk(dh_matrix)
 
-print(init_joints_positions)
+PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
 
 fab = Fabrik(init_joints_positions, [2, 2, 2, 2])
-fab.show_plots()
-out = fab.compute_ik(dest_point)
-PRINT_MSG(out)
+out = fab.compute_ik(dest_point, True)
+
+PRINT_MSG('Goal joints positions:    ' + str(out))
 '''
