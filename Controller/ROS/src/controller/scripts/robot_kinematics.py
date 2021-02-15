@@ -172,7 +172,7 @@ class Fabrik:
     err_margin = 0.0
     max_iter_num = 0
 
-    def __init__(self, init_thetas, init_joints_positions, joint_distances, err_margin = 0.01, max_iter_num = 100):
+    def __init__(self, init_thetas, init_joints_positions, joint_distances, err_margin = 0.01, max_iter_num = 10):
         self.init_thetas = init_thetas
         self.joint_distances = joint_distances
         self.init_joints_positions = init_joints_positions
@@ -180,44 +180,36 @@ class Fabrik:
         self.max_iter_num = max_iter_num
 
     # Compute backward iteration
-    def backward(self, current_points, goal_point):
-        '''
-
-        distance = 2 # always
-        p2_prim = goal.get_point_between(init_joints_positions[2], distance)
-        p1_prim = p2_prim.get_point_between(init_joints_positions[1], distance)
-        p0_prim = p1_prim.get_point_between(init_joints_positions[0], distance)
-
-        print([p0_prim, p1_prim, p2_prim, goal])
-
-        '''
+    def backward(self, points, goal_point):
         # Compute backward joint positions -> from goal position to point close to the start joint
         # Backward iteration omit last effector position and length and begins computations from goal_point
+        first = goal_point
         points_to_ret = []
-        points_to_ret.append(goal_point) # goal point should be the last returned point
-        pos = list(reversed(current_points[:-1]))
+        points_to_ret.append(first) # goal point should be the last returned point
+        pos = list(reversed(points[:-1]))
         distances = list(reversed(self.joint_distances[:-1]))
         for x in range(len(pos)):
-            point_prim = goal_point.get_point_between(pos[x], distances[x])
-            goal_point = point_prim
+            point_prim = first.get_point_between(pos[x], distances[x])
+            first = point_prim
             points_to_ret.append(point_prim)
         return list(reversed(points_to_ret))
 
     # Compute forward iteration
-    def forward(self, current_points, start_point):
+    def forward(self, points, start_point):
         # Compute forward joint positions -> from start position to point close to the goal position
         # Forward iteration omit first effector position and length and begins computations from start_point
+        first = start_point
         points_to_ret = []
-        points_to_ret.append(start_point) # start point should be the first returned point
-        pos = current_points[1:]
+        points_to_ret.append(first) # start point should be the first returned point
+        pos = points[1:]
         distances = self.joint_distances[1:]
         for x in range(len(pos)):
-            point_prim = start_point.get_point_between(pos[x], distances[x])
-            start_point = point_prim
+            point_prim = first.get_point_between(pos[x], distances[x])
+            first = point_prim
             points_to_ret.append(point_prim)
         return points_to_ret
 
-    def compute_ik(self, goal_eff_pos = [1, 1, 1]):
+    def compute_ik(self, goal_eff_pos):
         if not all(x == len(self.init_thetas) for x in (len(self.init_thetas), len(self.init_joints_positions), len(self.joint_distances))):
             raise Exception('Input vectors should have equal lengths!')
 
@@ -226,19 +218,26 @@ class Fabrik:
         goal_point = Point([goal_eff_pos[0], goal_eff_pos[1], goal_eff_pos[2]])
         start_error = 1
         goal_error = 1
-        while ((start_error > self.err_margin) and (goal_error > self.err_margin) and (self.max_iter_num > 0)):
+        iter_cnt = 0
+        while (((start_error > self.err_margin) or (goal_error > self.err_margin)) and (self.max_iter_num > iter_cnt)):
             try :
-                self.max_iter_num -= 1
-                tmp = self.backward(current_points, goal_point)
-                print(tmp)
-                current_points = tmp
-                tmp = self.forward(current_points, start_point)
-                current_points = tmp
-                print(tmp)
+                retb = self.backward(current_points, goal_point)
+                start_prim = retb[0]
+                start_error = start_prim.distance_to_point(start_point)
+
+                retf = self.forward(retb, start_point)
+                goal_prim = retf[-1]
+                goal_error = goal_prim.distance_to_point(goal_point)
+
+                current_points = retf
+
+                print('Iteration {} start error = {}, goal error = {}'.format(iter_cnt, start_error, goal_error))
+                iter_cnt = iter_cnt + 1
+                
             except Exception:
                 pass
 
-        return self.init_joints_positions
+        return current_points
 
 # Compute positions of all joints in robot init (base) position
 dh_matrix = [[pi/1.5, pi/2, pi/3, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
@@ -252,14 +251,12 @@ def get_robot_init_joints_position_fk(dh_matrix):
 init_joints_positions = get_robot_init_joints_position_fk(dh_matrix)
 
 fab = Fabrik([pi/1.5, pi/2, pi/3, pi/4], init_joints_positions, [2, 2, 2, 2])
-# out = fab.compute_ik([2.2071, -3.8228, 2.3178])
-# print(out)
+out = fab.compute_ik([2.2071, -3.8228, 2.3178])
+print(out)
 
+'''
 goal = Point([2.2071, -3.8228, 2.3178])
 start = init_joints_positions[0]
-
-ret = fab.backward(init_joints_positions, goal)
-print(ret)
 
 distance = 2 # always
 p3_prim = goal
@@ -267,14 +264,22 @@ p2_prim = p3_prim.get_point_between(init_joints_positions[2], distance)
 p1_prim = p2_prim.get_point_between(init_joints_positions[1], distance)
 p0_prim = p1_prim.get_point_between(start, distance)
 
-print([p0_prim, p1_prim, p2_prim, p3_prim])
+print('1. backward: ' + str([p0_prim, p1_prim, p2_prim, p3_prim]))
+
+retb = fab.backward(init_joints_positions, goal)
+print('2. backward: ' + str(retb))
+
 
 p0_prim_prim = start
 p1_prim_prim = p0_prim_prim.get_point_between(p1_prim, distance)
 p2_prim_prim = p1_prim_prim.get_point_between(p2_prim, distance)
 p3_prim_prim = p2_prim_prim.get_point_between(goal, distance)
 
-print([p0_prim_prim, p1_prim_prim, p2_prim_prim, p3_prim_prim])
+print('1. forward: ' + str([p0_prim_prim, p1_prim_prim, p2_prim_prim, p3_prim_prim]))
+
+retf = fab.forward(retb, start)
+print('2. forward: ' + str(retf))
+
 
 # Artificial neural network approach
 # def inverse_kinematics_ann(init_thetas, join_distances, eff_pos = [1, 1, 1]):
@@ -300,8 +305,6 @@ ax.plot3D([x[0] for x in tmpp2], [x[1] for x in tmpp2], [x[2] for x in tmpp2], c
 
 ax.scatter(goal.x, goal.y, goal.z, color='orange')
 
-print(start.distance_to_point(p1_prim_prim))
-print(p1_prim_prim.distance_to_point(p2_prim_prim))
-print(p2_prim_prim.distance_to_point(p3_prim_prim))
-
-plt.show()
+# print([start.distance_to_point(p1_prim_prim), p1_prim_prim.distance_to_point(p2_prim_prim), p2_prim_prim.distance_to_point(p3_prim_prim)])
+# plt.show()
+'''
