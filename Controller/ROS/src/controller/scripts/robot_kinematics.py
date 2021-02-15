@@ -46,7 +46,6 @@ import numpy as np
 from math import sin, cos, pi, sqrt, atan2, acos, e
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import axes3d
 
 # supress printing enormous small numbers like 0.123e-16
 np.set_printoptions(suppress=True)
@@ -258,28 +257,31 @@ class Fabrik:
         if(verbose):
             self.plot(start_point, goal_point, goal_joints_positions)
 
+        # TODO: compute angles from cosine theorem and return them instead of positions
+
         return goal_joints_positions
 
 
-# MAIN
 '''
-# Compute positions of all joints in robot init (base) position
-dest_point = [0, -4.137, 0.8346]
-theta_1 = float(atan2(-dest_point[1], -dest_point[0])) # compute theta_1
-dh_matrix = [[theta_1, pi/2, pi/3, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-def get_robot_init_joints_position_fk(dh_matrix):
-    _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
-    joints_init_positions = []
-    for jfk in fk_all:
-        joints_init_positions.append(Point([jfk[0][3], jfk[1][3], jfk[2][3]]))
-    return joints_init_positions
+# test
+if __name__ == '__main__':
+    # Compute positions of all joints in robot init (base) position
+    dest_point = [0, -4.137, 0.8346]
+    theta_1 = float(atan2(-dest_point[1], -dest_point[0])) # compute theta_1
+    dh_matrix = [[theta_1, pi/2, pi/3, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    def get_robot_init_joints_position_fk(dh_matrix):
+        _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
+        joints_init_positions = []
+        for jfk in fk_all:
+            joints_init_positions.append(Point([jfk[0][3], jfk[1][3], jfk[2][3]]))
+        return joints_init_positions
 
-init_joints_positions = get_robot_init_joints_position_fk(dh_matrix)
+    init_joints_positions = get_robot_init_joints_position_fk(dh_matrix)
 
-PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
+    PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
 
-fab = Fabrik(init_joints_positions, [2, 2, 2, 2])
-out = fab.compute_ik(dest_point, True)
+    fab = Fabrik(init_joints_positions, [2, 2, 2, 2])
+    out = fab.compute_ik(dest_point, True)
 
-PRINT_MSG('Goal joints positions:    ' + str(out))
+    PRINT_MSG('Goal joints positions:    ' + str(out))
 '''
