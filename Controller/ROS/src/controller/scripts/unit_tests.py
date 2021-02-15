@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from sympy import sin, cos, pi
+from math import sin, cos, pi
 from robot_kinematics import rotation_matrix, translation_matrix, prev_to_curr_joint_transform_matrix, forward_kinematics, Point
 
 class forward_kinematics_unittests(unittest.TestCase):
@@ -79,8 +79,8 @@ class forward_kinematics_unittests(unittest.TestCase):
         np.testing.assert_array_almost_equal(self.f_kine_1, tout1)
 
     def test_point(self):
-        p0 = Point(3,3,3)
-        p1 = Point(4,6,4)
+        p0 = Point([3,3,3])
+        p1 = Point([4,6,4])
         pdist = p0.distance_to_point(p1)
         np.testing.assert_almost_equal(pdist, 3.3166247903554) # check first to second distance
         pdist1 = p1.distance_to_point(p0)
