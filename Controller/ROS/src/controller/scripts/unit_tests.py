@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from sympy import sin, cos, pi
-from robot_kinematics import rotation_matrix, translation_matrix, prev_to_curr_joint_transform_matrix, forward_kinematics
+from robot_kinematics import rotation_matrix, translation_matrix, prev_to_curr_joint_transform_matrix, forward_kinematics, Point
 
 class forward_kinematics_unittests(unittest.TestCase):
 
@@ -78,6 +78,17 @@ class forward_kinematics_unittests(unittest.TestCase):
         tout1, _ = forward_kinematics([pi/4, pi/4, pi/4, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
         np.testing.assert_array_almost_equal(self.f_kine_1, tout1)
 
+    def test_point(self):
+        p0 = Point(3,3,3)
+        p1 = Point(4,6,4)
+        pdist = p0.distance_to_point(p1)
+        np.testing.assert_almost_equal(pdist, 3.3166247903554) # check first to second distance
+        pdist1 = p1.distance_to_point(p0)
+        np.testing.assert_almost_equal(pdist1, 3.3166247903554) # check second to first distance
+        np.testing.assert_almost_equal(pdist1, pdist) # check both computed distances
+        p2 = p0.get_point_between(p1, 3) # check slightly less distance point position
+        np.testing.assert_array_almost_equal(np.array([p2.x, p2.y, p2.z]), np.array([3.9045340337332908, 5.713602101199873, 3.9045340337332908]))
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(forward_kinematics_unittests('test_rotation_matrix'))
@@ -85,6 +96,7 @@ def suite():
     suite.addTest(forward_kinematics_unittests('test_transformation_matrix'))
     suite.addTest(forward_kinematics_unittests('test_prev_to_curr_joint_transform_matrix'))
     suite.addTest(forward_kinematics_unittests('test_forward_kinematics'))
+    suite.addTest(forward_kinematics_unittests('test_point'))
     return suite
 
 if __name__ == '__main__':
