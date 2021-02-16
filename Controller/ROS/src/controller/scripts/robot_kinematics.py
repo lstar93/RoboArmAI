@@ -176,7 +176,7 @@ class Fabrik:
     err_margin = 0.0
     max_iter_num = 0
 
-    def __init__(self, init_joints_positions, joint_distances, err_margin = 0.0001, max_iter_num = 10):
+    def __init__(self, init_joints_positions, joint_distances, err_margin = 0.0001, max_iter_num = 100):
         self.joint_distances = joint_distances
         self.init_joints_positions = init_joints_positions
         self.err_margin = err_margin
@@ -189,6 +189,10 @@ class Fabrik:
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
         ax.scatter(start_point.x, start_point.y, start_point.z, color='blue')
+        base_point = Point([0, 0, 0])
+        base = [base_point, joints_final_positions[0]]
+        ax.scatter([x.to_list()[0] for x in base], [x.to_list()[1] for x in base], [x.to_list()[2] for x in base], color='green')
+        ax.plot3D([x.to_list()[0] for x in base], [x.to_list()[1] for x in base], [x.to_list()[2] for x in base], color='green')
         ax.scatter([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
         ax.plot3D([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
         ax.scatter([x.to_list()[0] for x in joints_final_positions], [x.to_list()[1] for x in joints_final_positions], [x.to_list()[2] for x in joints_final_positions], color='pink')
@@ -226,7 +230,7 @@ class Fabrik:
             points_to_ret.append(point_prim)
         return points_to_ret
 
-    def compute_ik(self, goal_eff_pos, verbose=False):
+    def compute_goal_joints_positions(self, goal_eff_pos, verbose=False):
         if not all(x == len(self.init_joints_positions) for x in (len(self.init_joints_positions), len(self.joint_distances))):
             raise Exception('Input vectors should have equal lengths!')
 
@@ -248,24 +252,77 @@ class Fabrik:
             PRINT_MSG('Iteration {} -> start position error = {}, goal position error = {}'.format(iter_cnt, start_error, goal_error), verbose)
             iter_cnt = iter_cnt + 1
 
-        if len(goal_joints_positions) == 0:
-           return []
-
-        if(verbose):
-            self.plot(start_point, goal_point, goal_joints_positions)
-
-        # TODO: compute angles from cosine theorem and return them instead of positions
+        #if(verbose and not len(goal_joints_positions) == 0):
+        #    self.plot(start_point, goal_point, goal_joints_positions)
 
         return goal_joints_positions
 
+    # Compute angles from cosine theorem and return them instead of positions
+    # TODO: refactor for N angles
+    def compute_goal_joints_angles(self, gp):
+        A = Point([0, 0, 0])
+        B = Point([gp[0].x, gp[0].y, gp[0].z])
+        C = Point([gp[1].x, gp[1].y, gp[1].z])
+        D = Point([gp[2].x, gp[2].y, gp[2].z])
+        E = Point([gp[3].x, gp[3].y, gp[3].z])
 
-'''
+        base = [A, B]
+
+        AB = A.distance_to_point(B)
+        BC = B.distance_to_point(C)
+        CD = C.distance_to_point(D)
+        DE = D.distance_to_point(E)
+
+        theta_1 = float(atan2(-gp[3].y, -gp[3].x))
+
+        # first triangle
+        ftr = [A, C]
+        AC = A.distance_to_point(C)
+        theta_2 = pi + pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC))
+
+        # second triangle
+        sectr = [B, D]
+        BD = B.distance_to_point(D)
+        theta_3 = pi - acos((pow(BC,2) + pow(CD,2) - pow(BD,2)) / (2 * BC * CD))
+
+        # third triangle
+        thrdtr = [C, E]
+        CE = C.distance_to_point(E)
+        theta_4 = pi - acos((pow(CD,2) + pow(DE,2) - pow(CE,2)) / (2 * CD * DE))
+        
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
+        ax.set_xlabel('X')
+        ax.set_ylabel('Y')
+        ax.set_zlabel('Z')
+        ax.scatter(self.init_joints_positions[0].x, self.init_joints_positions[0].y, self.init_joints_positions[0].z, color='blue')
+        ax.scatter([x.to_list()[0] for x in base], [x.to_list()[1] for x in base], [x.to_list()[2] for x in base], color='green')
+        ax.plot3D([x.to_list()[0] for x in base], [x.to_list()[1] for x in base], [x.to_list()[2] for x in base], color='green')
+        ax.scatter([x.to_list()[0] for x in ftr], [x.to_list()[1] for x in ftr], [x.to_list()[2] for x in ftr], color='blue')
+        ax.plot3D([x.to_list()[0] for x in ftr], [x.to_list()[1] for x in ftr], [x.to_list()[2] for x in ftr], color='blue')
+        ax.scatter([x.to_list()[0] for x in sectr], [x.to_list()[1] for x in sectr], [x.to_list()[2] for x in sectr], color='yellow')
+        ax.plot3D([x.to_list()[0] for x in sectr], [x.to_list()[1] for x in sectr], [x.to_list()[2] for x in sectr], color='yellow')
+        ax.scatter([x.to_list()[0] for x in thrdtr], [x.to_list()[1] for x in thrdtr], [x.to_list()[2] for x in thrdtr], color='purple')
+        ax.plot3D([x.to_list()[0] for x in thrdtr], [x.to_list()[1] for x in thrdtr], [x.to_list()[2] for x in thrdtr], color='purple')
+        ax.scatter([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
+        ax.plot3D([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
+        ax.scatter([x.to_list()[0] for x in gp], [x.to_list()[1] for x in gp], [x.to_list()[2] for x in gp], color='pink')
+        ax.plot3D([x.to_list()[0] for x in gp], [x.to_list()[1] for x in gp], [x.to_list()[2] for x in gp], color='pink')
+        ax.scatter(gp[0].x, gp[0].y, gp[0].z, color='orange')
+        plt.show()
+        
+        return [theta_1, theta_2, theta_3, theta_4]
+
+    def compute_ik(self, goal_eff_pos, verbose = False):
+        pos = self.compute_goal_joints_positions(goal_eff_pos, verbose)
+        return self.compute_goal_joints_angles(pos)
+
 # test
 if __name__ == '__main__':
     # Compute positions of all joints in robot init (base) position
-    dest_point = [0, -4.137, 0.8346]
+    dest_point = [0.2386, 0, 7.032]
     theta_1 = float(atan2(-dest_point[1], -dest_point[0])) # compute theta_1
-    dh_matrix = [[theta_1, pi/2, pi/3, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    dh_matrix = [[theta_1, pi/1.3, pi/2.5, pi/5], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
     def get_robot_init_joints_position_fk(dh_matrix):
         _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
         joints_init_positions = []
@@ -278,7 +335,9 @@ if __name__ == '__main__':
     PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
 
     fab = Fabrik(init_joints_positions, [2, 2, 2, 2])
-    out = fab.compute_ik(dest_point, True)
+    out = fab.compute_goal_joints_positions(dest_point)
 
     PRINT_MSG('Goal joints positions:    ' + str(out))
-'''
+
+    ik_angles = fab.compute_ik(dest_point)
+    PRINT_MSG('IK angles: ' + str(ik_angles))
