@@ -164,6 +164,12 @@ class Point:
     def to_list(self):
         return [self.x, self.y, self.z]
 
+# matplotlib cannot resize all axis to same scale so e-12 numbers made plots impossible to analyze -> round very low numbers to 0
+def round(num):
+    if num > pow(e,-10) and num < 0:
+        return 0
+    return num
+
 # FABRIK stands from forward and backward reaching inverse kinematics -> https://www.youtube.com/watch?v=UNoX65PRehA&feature=emb_title -> most commonly used this times
 class Fabrik:
 
@@ -187,13 +193,13 @@ class Fabrik:
         ax.scatter(start_point.x, start_point.y, start_point.z, color='blue')
         base_point = Point([0, 0, 0])
         base = [base_point, joints_final_positions[0]]
-        ax.scatter([x.to_list()[0] for x in base], [x.to_list()[1] for x in base], [x.to_list()[2] for x in base], color='green')
-        ax.plot3D([x.to_list()[0] for x in base], [x.to_list()[1] for x in base], [x.to_list()[2] for x in base], color='green')
-        ax.scatter([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
-        ax.plot3D([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
-        ax.scatter([x.to_list()[0] for x in joints_final_positions], [x.to_list()[1] for x in joints_final_positions], [x.to_list()[2] for x in joints_final_positions], color='pink')
-        ax.plot3D([x.to_list()[0] for x in joints_final_positions], [x.to_list()[1] for x in joints_final_positions], [x.to_list()[2] for x in joints_final_positions], color='pink')
-        ax.scatter(goal_point.x, goal_point.y, goal_point.z, color='orange')
+        ax.scatter([round(x.x) for x in base], [round(x.y) for x in base], [round(x.z) for x in base], color='green')
+        ax.plot3D([round(x.x) for x in base], [round(x.y) for x in base], [round(x.z) for x in base], color='green')
+        ax.scatter([round(x.x) for x in self.init_joints_positions], [round(x.y) for x in self.init_joints_positions], [round(x.z) for x in self.init_joints_positions], color='green')
+        ax.plot3D([round(x.x) for x in self.init_joints_positions], [round(x.y) for x in self.init_joints_positions], [round(x.z) for x in self.init_joints_positions], color='green')
+        ax.scatter([round(x.x) for x in joints_final_positions], [round(x.y) for x in joints_final_positions], [round(x.z) for x in joints_final_positions], color='pink')
+        ax.plot3D([round(x.x) for x in joints_final_positions], [round(x.y) for x in joints_final_positions], [round(x.z) for x in joints_final_positions], color='pink')
+        ax.scatter(round(goal_point.x), round(goal_point.y), round(goal_point.z), color='orange')
         plt.show()
         
     # Compute backward iteration
@@ -248,16 +254,10 @@ class Fabrik:
             PRINT_MSG('Iteration {} -> start position error = {}, goal position error = {}'.format(iter_cnt, start_error, goal_error), verbose)
             iter_cnt = iter_cnt + 1
 
-        if(verbose and not len(goal_joints_positions) == 0):
-            self.plot(start_point, goal_point, goal_joints_positions)
+        #if(verbose and not len(goal_joints_positions) == 0):
+        #    self.plot(start_point, goal_point, goal_joints_positions)
 
         return goal_joints_positions
-
-    # matplotlib cannot resize all axis to same scale so e-12 numbers made plots impossible to analyze -> round very low numbers to 0
-    def round(num):
-        if num < pow(e, -12):
-            return 0
-        return num
 
     # Compute angles from cosine theorem and return them instead of positions
     # TODO: refactor for N angles
@@ -331,10 +331,10 @@ if __name__ == '__main__':
     '''
 
     # Compute positions of all joints in robot init (base) position
-    dest_point = [-2, 0, 5.464]
+    dest_point = [-2, 1, 5.464]
     theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1
     print(theta_1)
-    dh_matrix = [[0, pi/3, -pi/3, -pi/3], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    dh_matrix = [[theta_1, pi, -pi/3, -pi/3], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
     def get_robot_init_joints_position_fk(dh_matrix):
         _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
         joints_init_positions = []
@@ -346,9 +346,9 @@ if __name__ == '__main__':
 
     PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
 
-    fab = Fabrik(init_joints_positions, [2, 2, 2, 2], 0.0001, 1000)
-    #out = fab.compute_goal_joints_positions(dest_point)
-    #PRINT_MSG('Goal joints positions:    ' + str(out))
+    fab = Fabrik(init_joints_positions, [2, 2, 2, 2], 0.001, 100)
+    out = fab.compute_goal_joints_positions(dest_point)
+    PRINT_MSG('Goal joints positions:    ' + str(out))
 
-    ik_angles = fab.compute_ik(dest_point)
+    ik_angles = fab.compute_ik(dest_point, True)
     PRINT_MSG('IK angles: ' + str(ik_angles))
