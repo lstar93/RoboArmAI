@@ -43,7 +43,7 @@ Rt(z, G):
 
 import numpy.matlib
 import numpy as np
-from math import sin, cos, pi, sqrt, atan2, acos, e
+from math import e, sin, cos, pi, sqrt, atan2, acos
 
 import matplotlib.pyplot as plt
 
@@ -54,12 +54,6 @@ np.set_printoptions(suppress=True)
 def PRINT_MSG(msg, VERBOSE=True):
     if(VERBOSE):
         print(msg)
-
-# strange things happen to math.pi trigonometric funcs
-def round(num):
-    if (num < (e ** -16)):
-        return 0
-    else: return num
 
 # Rotation matrix
 # rot_joint -> rotation joint -> 'x', 'y' or 'z'
@@ -74,15 +68,15 @@ def rotation_matrix(rot_joint, angle, size = 3):
     rot_mtx = np.identity(size-1)
     if rot_joint == 'x':
         rot_mtx = np.matlib.array([[1,0,0],
-                                   [0,round(cos(angle)),-round(sin(angle))],
-                                   [0,round(sin(angle)),round(cos(angle))]])
+                                   [0,cos(angle),-sin(angle)],
+                                   [0,sin(angle),cos(angle)]])
     elif rot_joint == 'y':
-        rot_mtx = np.matlib.array([[round(cos(angle)),0,round(sin(angle))],
+        rot_mtx = np.matlib.array([[cos(angle),0,sin(angle)],
                                   [0,1,0],
-                                  [-round(sin(angle)),0,round(cos(angle))]])
+                                  [-sin(angle),0,cos(angle)]])
     elif rot_joint == 'z':
-        rot_mtx = np.matlib.array([[round(cos(angle)),-round(sin(angle)),0],
-                                   [round(sin(angle)),round(cos(angle)),0],
+        rot_mtx = np.matlib.array([[cos(angle),-sin(angle),0],
+                                   [sin(angle),cos(angle),0],
                                    [0,0,1]])
     else:
         raise Exception('Unknown axis name, only x, y or z are supported')
@@ -137,17 +131,19 @@ def forward_kinematics_trig(init_thetas, distances):
 '''
 
 def pow(arg, p):
-    return arg ** p
+    return float(arg ** p)
 
 class Point:
-    x = 0
-    y = 0
-    z = 0
+    x = 0.0
+    y = 0.0
+    z = 0.0
+    xyz = []
 
     def __init__(self, xyz):
-        self.x = xyz[0]
-        self.y = xyz[1]
-        self.z = xyz[2]
+            self.x = xyz[0]
+            self.y = xyz[1]
+            self.z = xyz[2]
+            self.xyz = xyz
 
     def distance_to_point(self, p):
         ret = sqrt(pow((self.x - p.x), 2) + pow((self.y - p.y), 2) + pow((self.z - p.z), 2))
@@ -252,10 +248,16 @@ class Fabrik:
             PRINT_MSG('Iteration {} -> start position error = {}, goal position error = {}'.format(iter_cnt, start_error, goal_error), verbose)
             iter_cnt = iter_cnt + 1
 
-        #if(verbose and not len(goal_joints_positions) == 0):
-        #    self.plot(start_point, goal_point, goal_joints_positions)
+        if(verbose and not len(goal_joints_positions) == 0):
+            self.plot(start_point, goal_point, goal_joints_positions)
 
         return goal_joints_positions
+
+    # matplotlib cannot resize all axis to same scale so e-12 numbers made plots impossible to analyze -> round very low numbers to 0
+    def round(num):
+        if num < pow(e, -12):
+            return 0
+        return num
 
     # Compute angles from cosine theorem and return them instead of positions
     # TODO: refactor for N angles
@@ -295,20 +297,20 @@ class Fabrik:
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        ax.scatter(self.init_joints_positions[0].x, self.init_joints_positions[0].y, self.init_joints_positions[0].z, color='blue')
-        ax.scatter([x.to_list()[0] for x in base], [x.to_list()[1] for x in base], [x.to_list()[2] for x in base], color='green')
-        ax.plot3D([x.to_list()[0] for x in base], [x.to_list()[1] for x in base], [x.to_list()[2] for x in base], color='green')
-        ax.scatter([x.to_list()[0] for x in ftr], [x.to_list()[1] for x in ftr], [x.to_list()[2] for x in ftr], color='blue')
-        ax.plot3D([x.to_list()[0] for x in ftr], [x.to_list()[1] for x in ftr], [x.to_list()[2] for x in ftr], color='blue')
-        ax.scatter([x.to_list()[0] for x in sectr], [x.to_list()[1] for x in sectr], [x.to_list()[2] for x in sectr], color='yellow')
-        ax.plot3D([x.to_list()[0] for x in sectr], [x.to_list()[1] for x in sectr], [x.to_list()[2] for x in sectr], color='yellow')
-        ax.scatter([x.to_list()[0] for x in thrdtr], [x.to_list()[1] for x in thrdtr], [x.to_list()[2] for x in thrdtr], color='purple')
-        ax.plot3D([x.to_list()[0] for x in thrdtr], [x.to_list()[1] for x in thrdtr], [x.to_list()[2] for x in thrdtr], color='purple')
-        ax.scatter([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
-        ax.plot3D([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
-        ax.scatter([x.to_list()[0] for x in gp], [x.to_list()[1] for x in gp], [x.to_list()[2] for x in gp], color='pink')
-        ax.plot3D([x.to_list()[0] for x in gp], [x.to_list()[1] for x in gp], [x.to_list()[2] for x in gp], color='pink')
-        ax.scatter(gp[0].x, gp[0].y, gp[0].z, color='orange')
+        ax.scatter(round(self.init_joints_positions[0].x), round(self.init_joints_positions[0].y), round(self.init_joints_positions[0].z), color='blue')
+        ax.scatter([round(x.x) for x in base], [round(x.y) for x in base], [round(x.z) for x in base], color='green')
+        ax.plot3D([round(x.x) for x in base], [round(x.y) for x in base], [round(x.z) for x in base], color='green')
+        ax.scatter([round(x.x) for x in ftr], [round(x.y) for x in ftr], [round(x.z) for x in ftr], color='blue')
+        ax.plot3D([round(x.x) for x in ftr], [round(x.y) for x in ftr], [round(x.z) for x in ftr], color='blue')
+        ax.scatter([round(x.x) for x in sectr], [round(x.y) for x in sectr], [round(x.z) for x in sectr], color='yellow')
+        ax.plot3D([round(x.x) for x in sectr], [round(x.y) for x in sectr], [round(x.z) for x in sectr], color='yellow')
+        ax.scatter([round(x.x) for x in thrdtr], [round(x.y) for x in thrdtr], [round(x.z) for x in thrdtr], color='purple')
+        ax.plot3D([round(x.x) for x in thrdtr], [round(x.y) for x in thrdtr], [round(x.z) for x in thrdtr], color='purple')
+        ax.scatter([round(x.x) for x in self.init_joints_positions], [round(x.y) for x in self.init_joints_positions], [round(x.z) for x in self.init_joints_positions], color='green')
+        ax.plot3D([round(x.x) for x in self.init_joints_positions], [round(x.y) for x in self.init_joints_positions], [round(x.z) for x in self.init_joints_positions], color='green')
+        ax.scatter([round(x.x) for x in gp], [round(x.y) for x in gp], [round(x.z) for x in gp], color='pink')
+        ax.plot3D([round(x.x) for x in gp], [round(x.y) for x in gp], [round(x.z) for x in gp], color='pink')
+        ax.scatter(round(gp[0].x), round(gp[0].y), round(gp[0].z), color='orange')
         plt.show()
         
         return [theta_1, theta_2, theta_3, theta_4]
@@ -318,11 +320,21 @@ class Fabrik:
         return self.compute_goal_joints_angles(pos)
 
 # test
+
 if __name__ == '__main__':
+    '''
+    point = Point([1,2,3])
+    joint = Joint('xyz', point)
+    print(joint)
+    joint2 = Joint('xzy', point)
+    print(joint2)
+    '''
+
     # Compute positions of all joints in robot init (base) position
-    dest_point = [0.2386, 0, 7.032]
-    theta_1 = float(atan2(-dest_point[1], -dest_point[0])) # compute theta_1
-    dh_matrix = [[theta_1, pi/1.3, pi/2.5, pi/5], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    dest_point = [-2, 0, 5.464]
+    theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1
+    print(theta_1)
+    dh_matrix = [[0, pi/3, -pi/3, -pi/3], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
     def get_robot_init_joints_position_fk(dh_matrix):
         _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
         joints_init_positions = []
@@ -334,10 +346,9 @@ if __name__ == '__main__':
 
     PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
 
-    fab = Fabrik(init_joints_positions, [2, 2, 2, 2])
-    out = fab.compute_goal_joints_positions(dest_point)
-
-    PRINT_MSG('Goal joints positions:    ' + str(out))
+    fab = Fabrik(init_joints_positions, [2, 2, 2, 2], 0.0001, 1000)
+    #out = fab.compute_goal_joints_positions(dest_point)
+    #PRINT_MSG('Goal joints positions:    ' + str(out))
 
     ik_angles = fab.compute_ik(dest_point)
     PRINT_MSG('IK angles: ' + str(ik_angles))
