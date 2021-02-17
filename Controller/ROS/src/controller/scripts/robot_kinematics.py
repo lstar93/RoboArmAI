@@ -51,7 +51,7 @@ import matplotlib.pyplot as plt
 np.set_printoptions(suppress=True)
 
 # Keep some prints, but sho them only if necessary
-def PRINT_MSG(msg, VERBOSE=False):
+def PRINT_MSG(msg, VERBOSE=True):
     if(VERBOSE):
         print(msg)
 
@@ -304,10 +304,10 @@ class Fabrik:
 
 if __name__ == '__main__':
     # Compute positions of all joints in robot init (base) position
-    dest_point = [3, 3, 4.464]
+    dest_point = [3.464, 0, 4]
     theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1
     print(theta_1)
-    dh_matrix = [[theta_1, pi, -pi/3, -pi/3], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    dh_matrix = [[0, pi/2, -pi/3, -pi/3], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
     def get_robot_init_joints_position_fk(dh_matrix):
         _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
         joints_init_positions = []
@@ -319,7 +319,7 @@ if __name__ == '__main__':
 
     PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
 
-    fab = Fabrik(init_joints_positions, [2, 2, 2, 2], 0.001, 100)
+    fab = Fabrik(init_joints_positions, [2, 2, 2, 2], 0.00001, 100)
     out = fab.compute_goal_joints_positions(dest_point)
     PRINT_MSG('Goal joints positions:    ' + str(out))
 
