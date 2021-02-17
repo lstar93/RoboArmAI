@@ -51,7 +51,7 @@ import matplotlib.pyplot as plt
 np.set_printoptions(suppress=True)
 
 # Keep some prints, but sho them only if necessary
-def PRINT_MSG(msg, VERBOSE=True):
+def PRINT_MSG(msg, VERBOSE=False):
     if(VERBOSE):
         print(msg)
 
@@ -191,11 +191,11 @@ class Fabrik:
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
         colors = [list(x) for x in numpy.random.rand(len(joints) + len(points),3)] 
-        for j,c in zip(joints[0:len(joints)],colors):
+        for j,c in zip(joints,colors[0:len(joints)]):
             ax.scatter([round(x.x) for x in j], [round(x.y) for x in j], [round(x.z) for x in j], color=c)
             ax.plot3D([round(x.x) for x in j], [round(x.y) for x in j], [round(x.z) for x in j], color=c)
 
-        for p,c in zip(joints[len(joints):],colors):
+        for p,c in zip(points,colors[len(joints):]):
             ax.scatter(round(p.x), round(p.y), round(p.z), color=c)
 
         plt.show()
@@ -290,7 +290,7 @@ class Fabrik:
         CE = C.distance_to_point(E)
         theta_4 = pi - acos((pow(CD,2) + pow(DE,2) - pow(CE,2)) / (2 * CD * DE))
         
-        self.plot_joints_and_points([base, ftr, sectr, thrdtr, self.init_joints_positions, gp], [self.init_joints_positions[0], gp])
+        self.plot_joints_and_points([base, ftr, sectr, thrdtr, self.init_joints_positions, gp], [self.init_joints_positions[0], gp[-1]])
         
         theta_1 = float(atan2(-gp[3].y, -gp[3].x))
 
@@ -304,9 +304,9 @@ class Fabrik:
 
 if __name__ == '__main__':
     # Compute positions of all joints in robot init (base) position
-    dest_point = [3.464, 0, 4]
+    dest_point = [2, 0, 4]
     theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1
-    print(theta_1)
+    PRINT_MSG(theta_1)
     dh_matrix = [[0, pi/2, -pi/3, -pi/3], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
     def get_robot_init_joints_position_fk(dh_matrix):
         _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
@@ -323,5 +323,5 @@ if __name__ == '__main__':
     out = fab.compute_goal_joints_positions(dest_point)
     PRINT_MSG('Goal joints positions:    ' + str(out))
 
-    ik_angles = fab.compute_roboarm_ik(dest_point, True)
+    ik_angles = fab.compute_roboarm_ik(dest_point)
     PRINT_MSG('IK angles: ' + str(ik_angles))
