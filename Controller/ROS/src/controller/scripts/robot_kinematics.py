@@ -43,7 +43,7 @@ Rt(z, G):
 
 import numpy.matlib
 import numpy as np
-from math import sin, cos, pi, sqrt, atan2, acos, e
+from math import e, sin, cos, pi, sqrt, atan2, acos
 
 import matplotlib.pyplot as plt
 
@@ -51,15 +51,9 @@ import matplotlib.pyplot as plt
 np.set_printoptions(suppress=True)
 
 # Keep some prints, but sho them only if necessary
-def PRINT_MSG(msg, VERBOSE=True):
+def PRINT_MSG(msg, VERBOSE=False):
     if(VERBOSE):
         print(msg)
-
-# strange things happen to math.pi trigonometric funcs
-def round(num):
-    if (num < (e ** -16)):
-        return 0
-    else: return num
 
 # Rotation matrix
 # rot_joint -> rotation joint -> 'x', 'y' or 'z'
@@ -74,15 +68,15 @@ def rotation_matrix(rot_joint, angle, size = 3):
     rot_mtx = np.identity(size-1)
     if rot_joint == 'x':
         rot_mtx = np.matlib.array([[1,0,0],
-                                   [0,round(cos(angle)),-round(sin(angle))],
-                                   [0,round(sin(angle)),round(cos(angle))]])
+                                   [0,cos(angle),-sin(angle)],
+                                   [0,sin(angle),cos(angle)]])
     elif rot_joint == 'y':
-        rot_mtx = np.matlib.array([[round(cos(angle)),0,round(sin(angle))],
+        rot_mtx = np.matlib.array([[cos(angle),0,sin(angle)],
                                   [0,1,0],
-                                  [-round(sin(angle)),0,round(cos(angle))]])
+                                  [-sin(angle),0,cos(angle)]])
     elif rot_joint == 'z':
-        rot_mtx = np.matlib.array([[round(cos(angle)),-round(sin(angle)),0],
-                                   [round(sin(angle)),round(cos(angle)),0],
+        rot_mtx = np.matlib.array([[cos(angle),-sin(angle),0],
+                                   [sin(angle),cos(angle),0],
                                    [0,0,1]])
     else:
         raise Exception('Unknown axis name, only x, y or z are supported')
@@ -95,11 +89,11 @@ def rotation_matrix(rot_joint, angle, size = 3):
 # Translation -> move axis by vector 
 # Transformation -> translation + rotation by angle
 # vect = position vector
-# rtm  = rotation matrix, 3x3 identity matrix if no angle given
 def translation_matrix(vect, axis='', angle=0):
     if len(vect) != 3:
         raise Exception('Incorrect vector size, vector dimension should be (1, 3) -> [x y z]')
     else:
+        # rtm  = rotation matrix, 3x3 identity matrix if no angle given
         rtm = np.identity(4) if not axis else rotation_matrix(axis, angle, 4)
         for x in range(3):
             rtm[x,3] = vect[x] # fit translated vector x into last column of rotatiom or identity matrix
@@ -137,12 +131,12 @@ def forward_kinematics_trig(init_thetas, distances):
 '''
 
 def pow(arg, p):
-    return arg ** p
+    return float(arg ** p)
 
 class Point:
-    x = 0
-    y = 0
-    z = 0
+    x = 0.0
+    y = 0.0
+    z = 0.0
 
     def __init__(self, xyz):
         self.x = xyz[0]
@@ -168,7 +162,15 @@ class Point:
     def to_list(self):
         return [self.x, self.y, self.z]
 
+# matplotlib cannot resize all axis to the same scale so very small numbers make plots impossible to analyze 
+# thus all very small numbers (assume e-10 and less until -e-10) will be rounded to 0 for plotting only
+def round(num):
+    if num > -1*e**-10 and num < 1*e**-10:
+        return 0
+    return num
+
 # FABRIK stands from forward and backward reaching inverse kinematics -> https://www.youtube.com/watch?v=UNoX65PRehA&feature=emb_title -> most commonly used this times
+# TODO: add angles limits
 class Fabrik:
 
     init_joints_positions = []
@@ -176,24 +178,26 @@ class Fabrik:
     err_margin = 0.0
     max_iter_num = 0
 
-    def __init__(self, init_joints_positions, joint_distances, err_margin = 0.0001, max_iter_num = 10):
+    def __init__(self, init_joints_positions, joint_distances, err_margin = 0.0001, max_iter_num = 100):
         self.joint_distances = joint_distances
         self.init_joints_positions = init_joints_positions
         self.err_margin = err_margin
         self.max_iter_num = max_iter_num
 
-    def plot(self, start_point, goal_point, joints_final_positions):
+    def plot_joints_and_points(self, joints, points = []):
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
         ax.set_zlabel('Z')
-        ax.scatter(start_point.x, start_point.y, start_point.z, color='blue')
-        ax.scatter([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
-        ax.plot3D([x.to_list()[0] for x in self.init_joints_positions], [x.to_list()[1] for x in self.init_joints_positions], [x.to_list()[2] for x in self.init_joints_positions], color='green')
-        ax.scatter([x.to_list()[0] for x in joints_final_positions], [x.to_list()[1] for x in joints_final_positions], [x.to_list()[2] for x in joints_final_positions], color='pink')
-        ax.plot3D([x.to_list()[0] for x in joints_final_positions], [x.to_list()[1] for x in joints_final_positions], [x.to_list()[2] for x in joints_final_positions], color='pink')
-        ax.scatter(goal_point.x, goal_point.y, goal_point.z, color='orange')
+        colors = [list(x) for x in numpy.random.rand(len(joints) + len(points),3)] 
+        for j,c in zip(joints[0:len(joints)],colors):
+            ax.scatter([round(x.x) for x in j], [round(x.y) for x in j], [round(x.z) for x in j], color=c)
+            ax.plot3D([round(x.x) for x in j], [round(x.y) for x in j], [round(x.z) for x in j], color=c)
+
+        for p,c in zip(joints[len(joints):],colors):
+            ax.scatter(round(p.x), round(p.y), round(p.z), color=c)
+
         plt.show()
         
     # Compute backward iteration
@@ -226,14 +230,14 @@ class Fabrik:
             points_to_ret.append(point_prim)
         return points_to_ret
 
-    def compute_ik(self, goal_eff_pos, verbose=False):
+    def compute_goal_joints_positions(self, goal_eff_pos, verbose=False):
         if not all(x == len(self.init_joints_positions) for x in (len(self.init_joints_positions), len(self.joint_distances))):
             raise Exception('Input vectors should have equal lengths!')
 
         current_join_positions = self.init_joints_positions
         goal_joints_positions = []
         start_point = self.init_joints_positions[0]
-        goal_point = Point([goal_eff_pos[0], goal_eff_pos[1], goal_eff_pos[2]])
+        goal_point = Point([x for x in goal_eff_pos])
         start_error = 1
         goal_error = 1
         iter_cnt = 0
@@ -248,24 +252,62 @@ class Fabrik:
             PRINT_MSG('Iteration {} -> start position error = {}, goal position error = {}'.format(iter_cnt, start_error, goal_error), verbose)
             iter_cnt = iter_cnt + 1
 
-        if len(goal_joints_positions) == 0:
-           return []
-
-        if(verbose):
-            self.plot(start_point, goal_point, goal_joints_positions)
-
-        # TODO: compute angles from cosine theorem and return them instead of positions
+        #if(verbose and not len(goal_joints_positions) == 0):
+        #    base_point = Point([0, 0, 0])
+        #    base = [base_point, goal_joints_positions[0]]
+        #    self.plot_joints_and_points([base, self.init_joints_positions, goal_joints_positions], [base_point, goal_point, start_point])
 
         return goal_joints_positions
 
+    # Compute angles from cosine theorem and return them instead of positions
+    # IMPORTANT: function works only for RoboArm manipulator!
+    def compute_roboarm_joints_angles(self, gp):
+        A = Point([0, 0, 0])
+        B = Point([gp[0].x, gp[0].y, gp[0].z])
+        C = Point([gp[1].x, gp[1].y, gp[1].z])
+        D = Point([gp[2].x, gp[2].y, gp[2].z])
+        E = Point([gp[3].x, gp[3].y, gp[3].z])
 
-'''
+        base = [A, B]
+
+        AB = A.distance_to_point(B)
+        BC = B.distance_to_point(C)
+        CD = C.distance_to_point(D)
+        DE = D.distance_to_point(E)
+
+        # first triangle
+        ftr = [A, C]
+        AC = A.distance_to_point(C)
+        theta_2 = pi + pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC))
+
+        # second triangle
+        sectr = [B, D]
+        BD = B.distance_to_point(D)
+        theta_3 = pi - acos((pow(BC,2) + pow(CD,2) - pow(BD,2)) / (2 * BC * CD))
+
+        # third triangle
+        thrdtr = [C, E]
+        CE = C.distance_to_point(E)
+        theta_4 = pi - acos((pow(CD,2) + pow(DE,2) - pow(CE,2)) / (2 * CD * DE))
+        
+        self.plot_joints_and_points([base, ftr, sectr, thrdtr, self.init_joints_positions, gp], [self.init_joints_positions[0], gp])
+        
+        theta_1 = float(atan2(-gp[3].y, -gp[3].x))
+
+        return [theta_1, theta_2, theta_3, theta_4]
+
+    def compute_roboarm_ik(self, goal_eff_pos, verbose = False):
+        pos = self.compute_goal_joints_positions(goal_eff_pos, verbose)
+        return self.compute_roboarm_joints_angles(pos)
+
 # test
+
 if __name__ == '__main__':
     # Compute positions of all joints in robot init (base) position
-    dest_point = [0, -4.137, 0.8346]
-    theta_1 = float(atan2(-dest_point[1], -dest_point[0])) # compute theta_1
-    dh_matrix = [[theta_1, pi/2, pi/3, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    dest_point = [3, 3, 4.464]
+    theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1
+    print(theta_1)
+    dh_matrix = [[theta_1, pi, -pi/3, -pi/3], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
     def get_robot_init_joints_position_fk(dh_matrix):
         _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
         joints_init_positions = []
@@ -277,8 +319,9 @@ if __name__ == '__main__':
 
     PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
 
-    fab = Fabrik(init_joints_positions, [2, 2, 2, 2])
-    out = fab.compute_ik(dest_point, True)
-
+    fab = Fabrik(init_joints_positions, [2, 2, 2, 2], 0.001, 100)
+    out = fab.compute_goal_joints_positions(dest_point)
     PRINT_MSG('Goal joints positions:    ' + str(out))
-'''
+
+    ik_angles = fab.compute_roboarm_ik(dest_point, True)
+    PRINT_MSG('IK angles: ' + str(ik_angles))

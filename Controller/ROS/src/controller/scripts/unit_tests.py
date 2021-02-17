@@ -53,7 +53,10 @@ class forward_kinematics_unittests(unittest.TestCase):
                                 [-0.5,-0.5,-0.70710678,0],
                                 [0.70710678,-0.70710678,0,6.82842712],
                                 [0,0,0,1]])
-
+    f_kine_2 = np.matlib.array([[0.5,0.866025,0,4],
+                                [0,0,-1,0],
+                                [-0.866025,0.5000,0,2],
+                                [0,0,0,1]])
 
     def test_rotation_matrix(self):
         np.testing.assert_array_almost_equal(self.rot_x_matrix, rotation_matrix('x', pi/2))
@@ -77,6 +80,8 @@ class forward_kinematics_unittests(unittest.TestCase):
         np.testing.assert_array_almost_equal(self.f_kine_0, tout)
         tout1, _ = forward_kinematics([pi/4, pi/4, pi/4, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
         np.testing.assert_array_almost_equal(self.f_kine_1, tout1)
+        tout2, _ = forward_kinematics([0, pi/3, -pi/3, -pi/3], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
+        np.testing.assert_array_almost_equal(self.f_kine_2, tout2)
 
     def test_point(self):
         p0 = Point([3,3,3])
