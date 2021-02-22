@@ -91,8 +91,8 @@
       <parent>chassis</parent>
       <axis>
         <limit>
-          <lower>-1.57</lower>
-          <upper>1.57</upper>
+          <lower>-3.14</lower>
+          <upper>3.14</upper>
         </limit>
         <xyz>0 0 1</xyz>
       </axis>
