@@ -45,13 +45,14 @@ import numpy.matlib
 import numpy as np
 from math import e, sin, cos, pi, sqrt, atan2, acos
 
+from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
 import matplotlib.pyplot as plt
 
 # supress printing enormous small numbers like 0.123e-16
 np.set_printoptions(suppress=True)
 
 # Keep some prints, but sho them only if necessary
-def PRINT_MSG(msg, VERBOSE=False):
+def PRINT_MSG(msg, VERBOSE=True):
     if(VERBOSE):
         print(msg)
 
@@ -252,16 +253,16 @@ class Fabrik:
             PRINT_MSG('Iteration {} -> start position error = {}, goal position error = {}'.format(iter_cnt, start_error, goal_error), verbose)
             iter_cnt = iter_cnt + 1
 
-        #if(verbose and not len(goal_joints_positions) == 0):
-        #    base_point = Point([0, 0, 0])
-        #    base = [base_point, goal_joints_positions[0]]
-        #    self.plot_joints_and_points([base, self.init_joints_positions, goal_joints_positions], [base_point, goal_point, start_point])
+        if verbose and not len(goal_joints_positions) == 0:
+            base_point = Point([0, 0, 0])
+            base = [base_point, goal_joints_positions[0]]
+            self.plot_joints_and_points([base, self.init_joints_positions, goal_joints_positions], [base_point, goal_point, start_point])
 
         return goal_joints_positions
 
     # Compute angles from cosine theorem and return them instead of positions
     # IMPORTANT: function works only for RoboArm manipulator!
-    def compute_roboarm_joints_angles(self, gp):
+    def compute_roboarm_joints_angles(self, gp, verbose=False):
         A = Point([0, 0, 0])
         B = Point([gp[0].x, gp[0].y, gp[0].z])
         C = Point([gp[1].x, gp[1].y, gp[1].z])
@@ -278,19 +279,25 @@ class Fabrik:
         # first triangle
         ftr = [A, C]
         AC = A.distance_to_point(C)
-        theta_2 = pi + pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC))
+        if C.x >= 0:
+            theta_2 = (pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC))) * -1
+        else:
+            theta_2 = (pi + pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC)))
 
         # second triangle
         sectr = [B, D]
         BD = B.distance_to_point(D)
-        theta_3 = pi - acos((pow(BC,2) + pow(CD,2) - pow(BD,2)) / (2 * BC * CD))
+        theta_3 = (pi - acos((pow(BC,2) + pow(CD,2) - pow(BD,2)) / (2 * BC * CD))) * -1
+        if D.x < 0:
+            theta_3 = theta_3 * -1
 
         # third triangle
         thrdtr = [C, E]
         CE = C.distance_to_point(E)
-        theta_4 = pi - acos((pow(CD,2) + pow(DE,2) - pow(CE,2)) / (2 * CD * DE))
+        theta_4 = (pi - acos((pow(CD,2) + pow(DE,2) - pow(CE,2)) / (2 * CD * DE))) * -1
         
-        self.plot_joints_and_points([base, ftr, sectr, thrdtr, self.init_joints_positions, gp], [self.init_joints_positions[0], gp[-1]])
+        if verbose:
+            self.plot_joints_and_points([base, ftr, sectr, thrdtr, self.init_joints_positions, gp], [self.init_joints_positions[0], gp[-1]])
         
         theta_1 = float(atan2(-gp[3].y, -gp[3].x))
 
@@ -298,16 +305,16 @@ class Fabrik:
 
     def compute_roboarm_ik(self, goal_eff_pos, verbose = False):
         pos = self.compute_goal_joints_positions(goal_eff_pos, verbose)
-        return self.compute_roboarm_joints_angles(pos)
+        return self.compute_roboarm_joints_angles(pos, verbose)
 
 # test
-
+'''
 if __name__ == '__main__':
     # Compute positions of all joints in robot init (base) position
-    dest_point = [2, 0, 4]
+    dest_point = [1, 0, 7]
     theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1
     PRINT_MSG(theta_1)
-    dh_matrix = [[0, pi/2, -pi/3, -pi/3], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    dh_matrix = [[theta_1, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
     def get_robot_init_joints_position_fk(dh_matrix):
         _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
         joints_init_positions = []
@@ -323,5 +330,6 @@ if __name__ == '__main__':
     out = fab.compute_goal_joints_positions(dest_point)
     PRINT_MSG('Goal joints positions:    ' + str(out))
 
-    ik_angles = fab.compute_roboarm_ik(dest_point)
+    ik_angles = fab.compute_roboarm_ik(dest_point, True)
     PRINT_MSG('IK angles: ' + str(ik_angles))
+'''
