@@ -9,22 +9,11 @@ from robot_kinematics import *
 
 # Compute positions of all joints in robot init (base) position
 def get_angles_ik(dest_point):
-    theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1
-    if theta_1 > pi/2 or theta_1 < -pi/2:
-        theta_1 = 0
-    dh_matrix = [[theta_1, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    # Compute positions of all joints in robot init (base) position
+    dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    fkine = InverseKinematics()
+    ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, 0.001, 100)
 
-    _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
-    joints_init_positions = []
-    for jfk in fk_all:
-        joints_init_positions.append(Point([jfk[0][3], jfk[1][3], jfk[2][3]]))
-
-    fab = Fabrik(joints_init_positions, [2, 2, 2, 2], 0.00001, 100)
-    out = fab.compute_goal_joints_positions(dest_point)
-    #print('Goal joints positions:    ' + str(out))
-    ik_angles = fab.compute_roboarm_ik(dest_point)
-    #PRINT_MSG('IK angles: ' + str(ik_angles))
-    ik_angles[0] = theta_1
     return ik_angles
 
 def robot_configuration_callback():

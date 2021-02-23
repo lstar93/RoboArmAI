@@ -52,8 +52,9 @@ import matplotlib.pyplot as plt
 np.set_printoptions(suppress=True)
 
 # Keep some prints, but sho them only if necessary
-def PRINT_MSG(msg, VERBOSE=True):
-    if(VERBOSE):
+VERBOSE = False
+def PRINT_MSG(msg, v=VERBOSE):
+    if(v):
         print(msg)
 
 # Rotation matrix
@@ -170,6 +171,22 @@ def round(num):
         return 0
     return num
 
+def plot_roboarm(joints, points = []):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    colors = [list(x) for x in numpy.random.rand(len(joints) + len(points),3)] 
+    for j,c in zip(joints,colors[0:len(joints)]):
+        ax.scatter([round(x.x) for x in j], [round(x.y) for x in j], [round(x.z) for x in j], color=c)
+        ax.plot3D([round(x.x) for x in j], [round(x.y) for x in j], [round(x.z) for x in j], color=c)
+
+    for p,c in zip(points,colors[len(joints):]):
+        ax.scatter(round(p.x), round(p.y), round(p.z), color=c)
+
+    plt.show()
+
 # FABRIK stands from forward and backward reaching inverse kinematics -> https://www.youtube.com/watch?v=UNoX65PRehA&feature=emb_title -> most commonly used this times
 # TODO: add angles limits
 class Fabrik:
@@ -184,22 +201,6 @@ class Fabrik:
         self.init_joints_positions = init_joints_positions
         self.err_margin = err_margin
         self.max_iter_num = max_iter_num
-
-    def plot_joints_and_points(self, joints, points = []):
-        fig = plt.figure()
-        ax = fig.add_subplot(111, projection='3d')
-        ax.set_xlabel('X')
-        ax.set_ylabel('Y')
-        ax.set_zlabel('Z')
-        colors = [list(x) for x in numpy.random.rand(len(joints) + len(points),3)] 
-        for j,c in zip(joints,colors[0:len(joints)]):
-            ax.scatter([round(x.x) for x in j], [round(x.y) for x in j], [round(x.z) for x in j], color=c)
-            ax.plot3D([round(x.x) for x in j], [round(x.y) for x in j], [round(x.z) for x in j], color=c)
-
-        for p,c in zip(points,colors[len(joints):]):
-            ax.scatter(round(p.x), round(p.y), round(p.z), color=c)
-
-        plt.show()
         
     # Compute backward iteration
     def backward(self, points, goal_point):
@@ -256,13 +257,14 @@ class Fabrik:
         if verbose and not len(goal_joints_positions) == 0:
             base_point = Point([0, 0, 0])
             base = [base_point, goal_joints_positions[0]]
-            self.plot_joints_and_points([base, self.init_joints_positions, goal_joints_positions], [base_point, goal_point, start_point])
+            plot_roboarm([base, self.init_joints_positions, goal_joints_positions], [base_point, goal_point, start_point])
 
         return goal_joints_positions
 
+class InverseKinematics:
     # Compute angles from cosine theorem and return them instead of positions
-    # IMPORTANT: function works only for RoboArm manipulator!
-    def compute_roboarm_joints_angles(self, gp, verbose=False):
+    # IMPORTANT: function works only for RoboArm manipulator and FABRIK method!
+    def FABRIK_compute_roboarm_joints_angles(self, gp, verbose=False):
         A = Point([0, 0, 0])
         B = Point([gp[0].x, gp[0].y, gp[0].z])
         C = Point([gp[1].x, gp[1].y, gp[1].z])
@@ -296,40 +298,52 @@ class Fabrik:
         CE = C.distance_to_point(E)
         theta_4 = (pi - acos((pow(CD,2) + pow(DE,2) - pow(CE,2)) / (2 * CD * DE))) * -1
         
-        if verbose:
-            self.plot_joints_and_points([base, ftr, sectr, thrdtr, self.init_joints_positions, gp], [self.init_joints_positions[0], gp[-1]])
-        
         theta_1 = float(atan2(-gp[3].y, -gp[3].x))
 
-        return [theta_1, theta_2, theta_3, theta_4]
+        return [theta_1, theta_2, theta_3, theta_4], [base, ftr, sectr, thrdtr]
 
-    def compute_roboarm_ik(self, goal_eff_pos, verbose = False):
-        pos = self.compute_goal_joints_positions(goal_eff_pos, verbose)
-        return self.compute_roboarm_joints_angles(pos, verbose)
+    # use one of methods to compute inverse kinematics
+    def compute_roboarm_ik(self, method, dest_point, dh_matrix = [], max_err = 0.001, max_iterations_num = 100, verbose = False):
+        if method.lower() == "fabrik":
+            # Fabrik 
+            theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1 TODO: check if this is correct
+            PRINT_MSG(theta_1)
+            def get_robot_init_joints_position_fk(dh_matrix):
+                _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
+                joints_init_positions = []
+                for jfk in fk_all:
+                    joints_init_positions.append(Point([jfk[0][3], jfk[1][3], jfk[2][3]]))
+                return joints_init_positions
 
-# test
+            tmp_len_0 = np.array(dh_matrix[1])
+            tmp_len_1 = np.array(dh_matrix[2]) 
+            joint_lengths = tmp_len_0 + tmp_len_1
+
+            # calculate robot initial pose joints positions
+            init_joints_positions = get_robot_init_joints_position_fk(dh_matrix)
+            PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
+
+            fab = Fabrik(init_joints_positions, joint_lengths, max_err, max_iterations_num)
+            joints_goal_positions = fab.compute_goal_joints_positions(dest_point, VERBOSE)
+            PRINT_MSG('Goal joints positions:    ' + str(joints_goal_positions))
+
+            ik_angles, trangles = self.FABRIK_compute_roboarm_joints_angles(joints_goal_positions, verbose)
+            
+            # print robot arm
+            if verbose:
+                plot_roboarm([trangles[0], trangles[1], trangles[2], trangles[3], init_joints_positions, joints_goal_positions], [init_joints_positions[0], joints_goal_positions[-1]])
+        
+            return ik_angles
+        
+        raise Exception('Unknown method!')
+
 '''
+# test
 if __name__ == '__main__':
     # Compute positions of all joints in robot init (base) position
-    dest_point = [1, 0, 7]
-    theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1
-    PRINT_MSG(theta_1)
-    dh_matrix = [[theta_1, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-    def get_robot_init_joints_position_fk(dh_matrix):
-        _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
-        joints_init_positions = []
-        for jfk in fk_all:
-            joints_init_positions.append(Point([jfk[0][3], jfk[1][3], jfk[2][3]]))
-        return joints_init_positions
-
-    init_joints_positions = get_robot_init_joints_position_fk(dh_matrix)
-
-    PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
-
-    fab = Fabrik(init_joints_positions, [2, 2, 2, 2], 0.00001, 100)
-    out = fab.compute_goal_joints_positions(dest_point)
-    PRINT_MSG('Goal joints positions:    ' + str(out))
-
-    ik_angles = fab.compute_roboarm_ik(dest_point, True)
+    dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    dest_point = [2, 0, 4]
+    fkine = InverseKinematics()
+    ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, 0.001, 100, VERBOSE)
     PRINT_MSG('IK angles: ' + str(ik_angles))
 '''
