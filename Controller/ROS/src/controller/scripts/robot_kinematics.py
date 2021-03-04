@@ -261,8 +261,9 @@ class Fabrik:
 
         return goal_joints_positions
 
+# Robo Arm inverse kinematics class
 class InverseKinematics:
-    # Compute angles from cosine theorem and return them instead of positions
+    # Compute angles from cosine theorem
     # IMPORTANT: function works only for RoboArm manipulator and FABRIK method!
     def FABRIK_compute_roboarm_joints_angles(self, gp, verbose=False):
         A = Point([0, 0, 0])
@@ -281,24 +282,24 @@ class InverseKinematics:
         # first triangle
         ftr = [A, C]
         AC = A.distance_to_point(C)
-        #if C.x >= 0:
-        #theta_2 = (pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC))) * -1
-        #else:
-        theta_2 = (pi + pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC)))
+        if C.x >= 0:
+            theta_2 = (pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC))) * -1
+        else:
+            theta_2 = (pi + pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC)))
 
         # second triangle
         sectr = [B, D]
         BD = B.distance_to_point(D)
         theta_3 = (pi - acos((pow(BC,2) + pow(CD,2) - pow(BD,2)) / (2 * BC * CD))) * -1
-        #if D.x < 0:
-        #    theta_3 = theta_3 * -1
+        if D.x < 0:
+            theta_3 = theta_3 * -1
 
         # third triangle
         thrdtr = [C, E]
         CE = C.distance_to_point(E)
         theta_4 = (pi - acos((pow(CD,2) + pow(DE,2) - pow(CE,2)) / (2 * CD * DE))) * -1
-        #if E.x < 0:
-        #    theta_4 = theta_4 * -1
+        if E.x < 0:
+            theta_4 = theta_4 * -1
 
         theta_1 = float(atan2(gp[3].y, gp[3].x))
 
@@ -308,7 +309,15 @@ class InverseKinematics:
         pass
 
     # use one of methods to compute inverse kinematics
-    def compute_roboarm_ik(self, method, dest_point, dh_matrix, joints_lengths , max_err = 0.001, max_iterations_num = 100, verbose = False):
+    def compute_roboarm_ik(self, method, dest_point, dh_matrix, joints_lengths, joints_limits, reach_limit, first_rev_joint_point, max_err = 0.001, max_iterations_num = 100, verbose = False):
+        for dp, limitv in zip(dest_point, joints_limits.items()):
+            if dp < limitv[1][0] or dp > limitv[1][1]:
+                raise Exception("Point is out of RoboArm reach area! Limits: {}, ".format(joints_limits))
+        
+        end_point = Point(dest_point)
+        if first_rev_joint_point.distance_to_point(end_point) > reach_limit:
+            raise Exception("Point is out of RoboArm reach area! Reach limit is {}, but the distance to point is {}".format(reach_limit, first_rev_joint_point.distance_to_point(end_point)))
+
         if method.lower() == "fabrik":
             # Fabrik 
             theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1 TODO: check if this is correct
@@ -343,12 +352,19 @@ class InverseKinematics:
 if __name__ == '__main__':
     # Compute positions of all joints in robot init (base) position
     dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-    dest_point = [2, 0, 4]
+    dest_point = [2, -4, 2]
     joints_lengths = [2, 2, 2, 2]
+    robo_arm_joint_limits = {'x_limits': [0,6], 'y_limits': [-6,6], 'z_limits': [0,6]} # assumed limits
+    robo_arm_reach_limit = 6 # lenght of 3 joint is the limit
+    first_rev_joint_point = Point([0,0,2]) # first revolute joint, from this point reach limit will be computed
     fkine = InverseKinematics()
-    ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, 0.001, 100, VERBOSE)
-    print('IK angles: ' + str(ik_angles))
-    dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-    fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3])
-    print(fk)
+    ik_angles = []
+    try:
+        ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100, VERBOSE)
+        print('IK angles: ' + str(ik_angles))
+        dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+        fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3])
+        print(fk)
+    except Exception as e:
+        print(e)
 '''

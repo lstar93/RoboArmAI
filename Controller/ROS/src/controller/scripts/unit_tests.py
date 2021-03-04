@@ -95,22 +95,35 @@ class forward_kinematics_unittests(unittest.TestCase):
         np.testing.assert_array_almost_equal(np.array([p2.x, p2.y, p2.z]), np.array([3.9045340337332908, 5.713602101199873, 3.9045340337332908]))
 
     def test_fabrik(self):
+        # first position
         dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-        dest_point = [2, 0, 4]
+        dest_point = [2, -2, 4]
         joints_lengths = [2, 2, 2, 2]
+        robo_arm_joint_limits = {'x_limits': [0,6], 'y_limits': [-6,6], 'z_limits': [0,6]} # assumed limits
+        robo_arm_reach_limit = 6 # lenght of 3 joint is the limit
+        first_rev_joint_point = Point([0,0,2]) # first revolute joint, from this point reach limit will be computed
         fkine = InverseKinematics()
-        ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, 0.001, 100) # compute ik angles
-        dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-        fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3]) # compute forward kinematics to check if angles are correct
+        ik_angles = []
+        try:
+            ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100)
+            dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+            fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3])
+        except Exception as e:
+            print(e)
         forward_dest_point = [fk[0,3], fk[1,3], fk[2,3]]
         max_decimal_error = 3 # set max decimail error to the same accuracy as IK, 3 decmial places
         np.testing.assert_array_almost_equal(np.array(dest_point), np.array(forward_dest_point), max_decimal_error)
-        # x < 0
-        dest_point = [-2, 0, 4]
-        ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, 0.001, 100) # compute ik angles
-        dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-        fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3]) # compute forward kinematics to check if angles are correct
+        # second position
+        dest_point = [2, -4, 2]
+        ik_angles = []
+        try:
+            ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100)
+            dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+            fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3])
+        except Exception as e:
+            print(e)
         forward_dest_point = [fk[0,3], fk[1,3], fk[2,3]]
+        max_decimal_error = 3 # set max decimail error to the same accuracy as IK, 3 decmial places
         np.testing.assert_array_almost_equal(np.array(dest_point), np.array(forward_dest_point), max_decimal_error)
 
 def suite():
