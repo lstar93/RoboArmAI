@@ -11,10 +11,20 @@ from robot_kinematics import *
 def get_angles_ik(dest_point):
     # Compute positions of all joints in robot init (base) position
     dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    dest_point = [2, -4, 2]
+    joints_lengths = [2, 2, 2, 2]
+    robo_arm_joint_limits = {'x_limits': [0,6], 'y_limits': [-6,6], 'z_limits': [0,6]} # assumed limits
+    robo_arm_reach_limit = 6 # lenght of 3 joint is the limit
+    first_rev_joint_point = Point([0,0,2]) # first revolute joint, from this point reach limit will be computed
     fkine = InverseKinematics()
-    ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, 0.001, 100)
-
-    return ik_angles
+    ik_angles = []
+    try:
+        ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100)
+        dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+        fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3])
+        return ik_angles
+    except Exception as e:
+        print(e)
 
 def robot_configuration_callback():
     return None
@@ -33,7 +43,7 @@ def joint_controller():
     pub = rospy.Publisher('/my_robot/all_joints_positions', Float64MultiArray, queue_size=10)
     rospy.init_node('talker', anonymous=True)
     rate = rospy.Rate(0.10) # 0.1hz
-    
+    '''
     dest_point0 = [5, 1, 1]
     pos0_anglees = get_angles_ik(dest_point0)
   
@@ -47,10 +57,10 @@ def joint_controller():
     # pos0_arr_mtlb = [0.0, 1.227148865655292, 1.0329403678444162, -1.6755963382038974, 0]
     # pos0_arr = pos0_arr_mtlb[:]
     # kinematics_poses_to_gazebo(pos0_arr, [0, 2, 3])
-
-    # pos0_arr_mtlb = [0, pi/2, 0, pi/4, 0]
-    # pos0_arr = pos0_arr_mtlb[:]
-    # kinematics_poses_to_gazebo(pos0_arr)
+    '''
+    pos0_arr_mtlb = [0, pi/2, 0, pi/4, 0]
+    pos0_arr = pos0_arr_mtlb[:]
+    kinematics_poses_to_gazebo(pos0_arr)
 
     pos1_arr_mtlb = [0, pi/2, 0, -pi/4, 0]
     pos1_arr = pos1_arr_mtlb[:]
