@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 from math import sin, cos, pi
-from robot_kinematics import rotation_matrix, translation_matrix, prev_to_curr_joint_transform_matrix, forward_kinematics, Point
+from robot_kinematics import rotation_matrix, translation_matrix, prev_to_curr_joint_transform_matrix, forward_kinematics, Point, InverseKinematics
 
 class forward_kinematics_unittests(unittest.TestCase):
 
@@ -94,6 +94,25 @@ class forward_kinematics_unittests(unittest.TestCase):
         p2 = p0.get_point_between(p1, 3) # check slightly less distance point position
         np.testing.assert_array_almost_equal(np.array([p2.x, p2.y, p2.z]), np.array([3.9045340337332908, 5.713602101199873, 3.9045340337332908]))
 
+    def test_fabrik(self):
+        dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+        dest_point = [2, 0, 4]
+        joints_lengths = [2, 2, 2, 2]
+        fkine = InverseKinematics()
+        ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, 0.001, 100) # compute ik angles
+        dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+        fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3]) # compute forward kinematics to check if angles are correct
+        forward_dest_point = [fk[0,3], fk[1,3], fk[2,3]]
+        max_decimal_error = 3 # set max decimail error to the same accuracy as IK, 3 decmial places
+        np.testing.assert_array_almost_equal(np.array(dest_point), np.array(forward_dest_point), max_decimal_error)
+        # x < 0
+        dest_point = [-2, 0, 4]
+        ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, 0.001, 100) # compute ik angles
+        dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+        fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3]) # compute forward kinematics to check if angles are correct
+        forward_dest_point = [fk[0,3], fk[1,3], fk[2,3]]
+        np.testing.assert_array_almost_equal(np.array(dest_point), np.array(forward_dest_point), max_decimal_error)
+
 def suite():
     suite = unittest.TestSuite()
     suite.addTest(forward_kinematics_unittests('test_rotation_matrix'))
@@ -102,6 +121,7 @@ def suite():
     suite.addTest(forward_kinematics_unittests('test_prev_to_curr_joint_transform_matrix'))
     suite.addTest(forward_kinematics_unittests('test_forward_kinematics'))
     suite.addTest(forward_kinematics_unittests('test_point'))
+    suite.addTest(forward_kinematics_unittests('test_fabrik'))
     return suite
 
 if __name__ == '__main__':

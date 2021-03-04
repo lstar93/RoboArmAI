@@ -164,7 +164,7 @@ class Point:
     def to_list(self):
         return [self.x, self.y, self.z]
 
-# matplotlib cannot resize all axis to the same scale so very small numbers make plots impossible to analyze 
+# matplotlib cannot resize all axes to the same scale so very small numbers make plots impossible to analyze 
 # thus all very small numbers (assume e-10 and less until -e-10) will be rounded to 0 for plotting only
 def round(num):
     if num > -1*e**-10 and num < 1*e**-10:
@@ -281,29 +281,34 @@ class InverseKinematics:
         # first triangle
         ftr = [A, C]
         AC = A.distance_to_point(C)
-        if C.x >= 0:
-            theta_2 = (pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC))) * -1
-        else:
-            theta_2 = (pi + pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC)))
+        #if C.x >= 0:
+        #theta_2 = (pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC))) * -1
+        #else:
+        theta_2 = (pi + pi/2 - acos((pow(AB,2) + pow(BC,2) - pow(AC,2)) / (2 * AB * BC)))
 
         # second triangle
         sectr = [B, D]
         BD = B.distance_to_point(D)
         theta_3 = (pi - acos((pow(BC,2) + pow(CD,2) - pow(BD,2)) / (2 * BC * CD))) * -1
-        if D.x < 0:
-            theta_3 = theta_3 * -1
+        #if D.x < 0:
+        #    theta_3 = theta_3 * -1
 
         # third triangle
         thrdtr = [C, E]
         CE = C.distance_to_point(E)
         theta_4 = (pi - acos((pow(CD,2) + pow(DE,2) - pow(CE,2)) / (2 * CD * DE))) * -1
-        
-        theta_1 = float(atan2(-gp[3].y, -gp[3].x))
+        #if E.x < 0:
+        #    theta_4 = theta_4 * -1
+
+        theta_1 = float(atan2(gp[3].y, gp[3].x))
 
         return [theta_1, theta_2, theta_3, theta_4], [base, ftr, sectr, thrdtr]
 
+    def ANN_compute_roboarm_joints_angles(self, gp, verbose=False):
+        pass
+
     # use one of methods to compute inverse kinematics
-    def compute_roboarm_ik(self, method, dest_point, dh_matrix = [], max_err = 0.001, max_iterations_num = 100, verbose = False):
+    def compute_roboarm_ik(self, method, dest_point, dh_matrix, joints_lengths , max_err = 0.001, max_iterations_num = 100, verbose = False):
         if method.lower() == "fabrik":
             # Fabrik 
             theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1 TODO: check if this is correct
@@ -315,23 +320,19 @@ class InverseKinematics:
                     joints_init_positions.append(Point([jfk[0][3], jfk[1][3], jfk[2][3]]))
                 return joints_init_positions
 
-            tmp_len_0 = np.array(dh_matrix[1])
-            tmp_len_1 = np.array(dh_matrix[2]) 
-            joint_lengths = tmp_len_0 + tmp_len_1
-
             # calculate robot initial pose joints positions
             init_joints_positions = get_robot_init_joints_position_fk(dh_matrix)
             PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
 
-            fab = Fabrik(init_joints_positions, joint_lengths, max_err, max_iterations_num)
+            fab = Fabrik(init_joints_positions, joints_lengths, max_err, max_iterations_num)
             joints_goal_positions = fab.compute_goal_joints_positions(dest_point, VERBOSE)
             PRINT_MSG('Goal joints positions:    ' + str(joints_goal_positions))
 
-            ik_angles, trangles = self.FABRIK_compute_roboarm_joints_angles(joints_goal_positions, verbose)
+            ik_angles, triangles = self.FABRIK_compute_roboarm_joints_angles(joints_goal_positions, verbose)
             
             # print robot arm
             if verbose:
-                plot_roboarm([trangles[0], trangles[1], trangles[2], trangles[3], init_joints_positions, joints_goal_positions], [init_joints_positions[0], joints_goal_positions[-1]])
+                plot_roboarm([triangles[0], triangles[1], triangles[2], triangles[3], init_joints_positions, joints_goal_positions], [init_joints_positions[0], joints_goal_positions[-1]])
         
             return ik_angles
         
@@ -343,7 +344,11 @@ if __name__ == '__main__':
     # Compute positions of all joints in robot init (base) position
     dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
     dest_point = [2, 0, 4]
+    joints_lengths = [2, 2, 2, 2]
     fkine = InverseKinematics()
-    ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, 0.001, 100, VERBOSE)
-    PRINT_MSG('IK angles: ' + str(ik_angles))
+    ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, 0.001, 100, VERBOSE)
+    print('IK angles: ' + str(ik_angles))
+    dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3])
+    print(fk)
 '''
