@@ -123,7 +123,7 @@ def forward_kinematics(thetas, epsilons, ais, alphas):
     return allmtx[-1], allmtx
 
 '''
-# Inverse kinematics https://www.actamechanica.sk/pdfs/ams/2016/03/07.pdf -> inverse kinematics geaometric approach (4 thetas, 3 equations, not easly solvable without specific approach)
+# Inverse kinematics https://www.actamechanica.sk/pdfs/ams/2016/03/07.pdf -> inverse kinematics geaometric approach (4 thetas, 3 equations, no easy solution without specific approach)
 # Trigonometric approach for forward kinematics  
 def forward_kinematics_trig(init_thetas, distances):
     x = float(cos(init_thetas[0]) * ((distances[1] * cos(init_thetas[1])) + (distances[2] * cos(init_thetas[1] + init_thetas[2])) + (distances[3] * cos(init_thetas[1] + init_thetas[2] + init_thetas[3]))))
