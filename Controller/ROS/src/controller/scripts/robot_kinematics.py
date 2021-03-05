@@ -195,7 +195,7 @@ class Fabrik:
     def backward(self, points, goal_point):
         # Compute backward joint positions -> from goal position to point close to the start joint
         # Backward iteration omit last joint and begins computations from goal_point
-        points_to_ret = [goal_point] # goal point should be the last returned point
+        points_to_ret = [goal_point] # goal point should be the last point in array
         positions = list(reversed(points[:-1]))
         distances = list(reversed(self.joint_distances[:-1]))
         for p, d in zip(positions, distances):
@@ -207,7 +207,7 @@ class Fabrik:
     def forward(self, points, start_point):
         # Compute forward joint positions -> from start position to point close to the goal position
         # Forward iteration omit first joint and begins computations from start_point
-        points_to_ret = [start_point] # start point should be the first returned point
+        points_to_ret = [start_point] # start point should be the first point in array
         positions = points[1:]
         distances = self.joint_distances[1:]
         for p, d in zip(positions, distances):
