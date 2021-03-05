@@ -108,7 +108,7 @@ class forward_kinematics_unittests(unittest.TestCase):
         try:
             ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100)
             dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-            fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3])
+            fk, _ = forward_kinematics(*dh_matrix_out)
         except Exception as e:
             print(e)
         forward_dest_point = [fk[0,3], fk[1,3], fk[2,3]]
@@ -120,7 +120,7 @@ class forward_kinematics_unittests(unittest.TestCase):
         try:
             ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100)
             dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-            fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3])
+            fk, _ = forward_kinematics(*dh_matrix_out)
         except Exception as e:
             print(e)
         forward_dest_point = [fk[0,3], fk[1,3], fk[2,3]]
