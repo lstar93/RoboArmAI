@@ -177,7 +177,7 @@ def plot_roboarm(joints, points = []):
 
     plt.show()
 
-# FABRIK stands from forward and backward reaching inverse kinematics -> https://www.youtube.com/watch?v=UNoX65PRehA&feature=emb_title -> most commonly used this times
+# FABRIK stands from forward and backward reaching inverse kinematics -> https://www.youtube.com/watch?v=UNoX65PRehA&feature=emb_title
 # TODO: add angles limits
 class Fabrik:
 
