@@ -82,7 +82,7 @@ def rotation_matrix(rot_joint, angle, size = 3):
                                    [0,0,1]])
     else:
         raise Exception('Unknown axis name, only x, y or z are supported')
-    # if size is greater that rot_mtx shape make the rotation matrix part of identity_of_size beggining from the first element
+    # if size is greater that rot_mtx shape make the rotation matrix part of identity_of_size beginning from the first element
     if size != rot_mtx.shape[0]:
         identity_of_size[0:size-1,0:size-1] = rot_mtx
         return identity_of_size
@@ -95,10 +95,10 @@ def translation_matrix(vect, axis='', angle=0):
     if len(vect) != 3:
         raise Exception('Incorrect vector size, vector dimension should be (1, 3) -> [x y z]')
     else:
-        # rtm  = rotation matrix, 3x3 identity matrix if no angle given
+        # rtm -> rotation matrix, 4x4 identity matrix if no angle given
         rtm = np.identity(4) if not axis else rotation_matrix(axis, angle, 4)
         for x in range(3):
-            rtm[x,3] = vect[x] # fit translated vector x into last column of rotatiom or identity matrix
+            rtm[x,3] = vect[x] # repalce first 3 elems of matrix last column with translated vector x
         return rtm
 
 # DH_i-1_i = Rt(Z, Oi) * Tr([0, 0, Ei]^T) * Tr([ai, 0, 0]^T) * Rt(X, Li)
@@ -114,23 +114,13 @@ def prev_to_curr_joint_transform_matrix(theta_i, epsilon_i, a_i, alpha_i):
 # Combine all computations into forward kinematics
 def forward_kinematics(thetas, epsilons, ais, alphas):
     if not all(x == len(thetas) for x in (len(thetas), len(epsilons), len(ais), len(alphas))):
-        raise Exception('All homogenous matrix arguments size should be equal to robot DOF')
+        raise Exception('All homogenous matrix arguments size should be equal each other and robot DOF')
     allmtx = []
-    allmtx.append(prev_to_curr_joint_transform_matrix(thetas[0], epsilons[0], ais[0], alphas[0]))
+    allmtx.append(prev_to_curr_joint_transform_matrix(thetas[0], epsilons[0], ais[0], alphas[0])) # initial matrix
     for elem in range(len(thetas) - 1):
-        nextMatrix = allmtx[elem].dot(prev_to_curr_joint_transform_matrix(thetas[elem+1], epsilons[elem+1], ais[elem+1], alphas[elem+1]))
+        nextMatrix = allmtx[elem].dot(prev_to_curr_joint_transform_matrix(thetas[elem+1], epsilons[elem+1], ais[elem+1], alphas[elem+1])) # multiply every transformation matrix
         allmtx.append(nextMatrix)
     return allmtx[-1], allmtx
-
-'''
-# Inverse kinematics https://www.actamechanica.sk/pdfs/ams/2016/03/07.pdf -> inverse kinematics geaometric approach (4 thetas, 3 equations, no easy solution without specific approach)
-# Trigonometric approach for forward kinematics  
-def forward_kinematics_trig(init_thetas, distances):
-    x = float(cos(init_thetas[0]) * ((distances[1] * cos(init_thetas[1])) + (distances[2] * cos(init_thetas[1] + init_thetas[2])) + (distances[3] * cos(init_thetas[1] + init_thetas[2] + init_thetas[3]))))
-    y = float(sin(init_thetas[0]) * ((distances[1] * cos(init_thetas[1])) + (distances[2] * cos(init_thetas[1] + init_thetas[2])) + (distances[3] * cos(init_thetas[1] + init_thetas[2] + init_thetas[3]))))
-    z = float(distances[0]        +  (distances[1] * sin(init_thetas[1])) + (distances[2] * sin(init_thetas[1] + init_thetas[2])) + (distances[3] * sin(init_thetas[1] + init_thetas[2] + init_thetas[3])))
-    return [x, y, z]
-'''
 
 def pow(arg, p):
     return float(arg ** p)
@@ -146,8 +136,7 @@ class Point:
         self.z = xyz[2]
 
     def distance_to_point(self, p):
-        ret = sqrt(pow((self.x - p.x), 2) + pow((self.y - p.y), 2) + pow((self.z - p.z), 2))
-        return ret
+        return sqrt(pow((self.x - p.x), 2) + pow((self.y - p.y), 2) + pow((self.z - p.z), 2))
 
     def get_point_between(self, end_point, distance):
         x_01 = self.x + ((distance/self.distance_to_point(end_point))*(end_point.x - self.x))
@@ -165,7 +154,7 @@ class Point:
         return [self.x, self.y, self.z]
 
 # matplotlib cannot resize all axes to the same scale so very small numbers make plots impossible to analyze 
-# thus all very small numbers (assume e-10 and less until -e-10) will be rounded to 0 for plotting only
+# thus all very small numbers (assume e-10 and less until -e-10) will be rounded to 0 for plotting purposes only
 def round(num):
     if num > -1*e**-10 and num < 1*e**-10:
         return 0
@@ -205,31 +194,25 @@ class Fabrik:
     # Compute backward iteration
     def backward(self, points, goal_point):
         # Compute backward joint positions -> from goal position to point close to the start joint
-        # Backward iteration omit last effector position and length and begins computations from goal_point
-        first = goal_point
-        points_to_ret = []
-        points_to_ret.append(first) # goal point should be the last returned point
-        pos = list(reversed(points[:-1]))
+        # Backward iteration omit last joint and begins computations from goal_point
+        points_to_ret = [goal_point] # goal point should be the last returned point
+        positions = list(reversed(points[:-1]))
         distances = list(reversed(self.joint_distances[:-1]))
-        for x in range(len(pos)):
-            point_prim = first.get_point_between(pos[x], distances[x])
-            first = point_prim
-            points_to_ret.append(point_prim)
+        for p, d in zip(positions, distances):
+            points_to_ret.append(goal_point.get_point_between(p, d))
+            goal_point = points_to_ret[-1] # next element is last computed element
         return list(reversed(points_to_ret))
 
     # Compute forward iteration
     def forward(self, points, start_point):
         # Compute forward joint positions -> from start position to point close to the goal position
-        # Forward iteration omit first effector position and length and begins computations from start_point
-        first = start_point
-        points_to_ret = []
-        points_to_ret.append(first) # start point should be the first returned point
-        pos = points[1:]
+        # Forward iteration omit first joint and begins computations from start_point
+        points_to_ret = [start_point] # start point should be the first returned point
+        positions = points[1:]
         distances = self.joint_distances[1:]
-        for x in range(len(pos)):
-            point_prim = first.get_point_between(pos[x], distances[x])
-            first = point_prim
-            points_to_ret.append(point_prim)
+        for p, d in zip(positions, distances):
+            points_to_ret.append(start_point.get_point_between(p, d))
+            start_point = points_to_ret[-1] # next element is last computed element
         return points_to_ret
 
     def compute_goal_joints_positions(self, goal_eff_pos, verbose=False):
@@ -252,7 +235,7 @@ class Fabrik:
             current_join_positions = retf
             goal_joints_positions = current_join_positions
             PRINT_MSG('Iteration {} -> start position error = {}, goal position error = {}'.format(iter_cnt, start_error, goal_error), verbose)
-            iter_cnt = iter_cnt + 1
+            iter_cnt += 1
 
         if verbose and not len(goal_joints_positions) == 0:
             base_point = Point([0, 0, 0])
@@ -310,38 +293,35 @@ class InverseKinematics:
 
     # use one of methods to compute inverse kinematics
     def compute_roboarm_ik(self, method, dest_point, dh_matrix, joints_lengths, joints_limits, reach_limit, first_rev_joint_point, max_err = 0.001, max_iterations_num = 100, verbose = False):
-        for dp, limitv in zip(dest_point, joints_limits.items()):
-            if dp < limitv[1][0] or dp > limitv[1][1]:
-                raise Exception("Point is out of RoboArm reach area! Limits: {}, ".format(joints_limits))
+        # Some basic limits check
+        if any(dp < limitv[1][0] or dp > limitv[1][1] for dp, limitv in zip(dest_point, joints_limits.items())):
+            raise Exception("Point is out of RoboArm reach area! Limits: {}, ".format(joints_limits))
         
-        end_point = Point(dest_point)
-        if first_rev_joint_point.distance_to_point(end_point) > reach_limit:
-            raise Exception("Point is out of RoboArm reach area! Reach limit is {}, but the distance to point is {}".format(reach_limit, first_rev_joint_point.distance_to_point(end_point)))
+        # Roboarm reach distance check
+        if first_rev_joint_point.distance_to_point(Point(dest_point)) > reach_limit:
+            raise Exception("Point is out of RoboArm reach area! Reach limit is {}, but the distance to point is {}".format(reach_limit, first_rev_joint_point.distance_to_point(Point(dest_point))))
 
         if method.lower() == "fabrik":
-            # Fabrik 
-            theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1 TODO: check if this is correct
-            PRINT_MSG(theta_1)
-            def get_robot_init_joints_position_fk(dh_matrix):
-                _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
-                joints_init_positions = []
-                for jfk in fk_all:
-                    joints_init_positions.append(Point([jfk[0][3], jfk[1][3], jfk[2][3]]))
-                return joints_init_positions
+            # FABRIK 
+            theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1 to omit horizontal move in FABRIK
+            dh_matrix[0][0] = theta_1 # replace initial theta_1
 
-            # calculate robot initial pose joints positions
-            init_joints_positions = get_robot_init_joints_position_fk(dh_matrix)
-            PRINT_MSG('Initial joints positions: ' + str(init_joints_positions))
+            # Compute initial xyz possition of every robot joint
+            _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
+            init_joints_positions = [Point([x[0][3], x[1][3], x[2][3]]) for x in fk_all]
+            PRINT_MSG('Initial joints positions:    ' + str(init_joints_positions))
 
+            # Compute joint positions using FABRIK
             fab = Fabrik(init_joints_positions, joints_lengths, max_err, max_iterations_num)
-            joints_goal_positions = fab.compute_goal_joints_positions(dest_point, VERBOSE)
-            PRINT_MSG('Goal joints positions:    ' + str(joints_goal_positions))
+            goal_joints_positions = fab.compute_goal_joints_positions(dest_point, VERBOSE)
+            PRINT_MSG('Goal joints positions:    ' + str(goal_joints_positions))
 
-            ik_angles, triangles = self.FABRIK_compute_roboarm_joints_angles(joints_goal_positions, verbose)
+            # Compute roboarm angles from FABRIK computed positions
+            ik_angles, joints_triangles = self.FABRIK_compute_roboarm_joints_angles(goal_joints_positions, verbose)
             
             # print robot arm
             if verbose:
-                plot_roboarm([triangles[0], triangles[1], triangles[2], triangles[3], init_joints_positions, joints_goal_positions], [init_joints_positions[0], joints_goal_positions[-1]])
+                plot_roboarm([joints_triangles[0], joints_triangles[1], joints_triangles[2], joints_triangles[3], init_joints_positions, goal_joints_positions], [init_joints_positions[0], goal_joints_positions[-1]])
         
             return ik_angles
         
@@ -352,7 +332,7 @@ class InverseKinematics:
 if __name__ == '__main__':
     # Compute positions of all joints in robot init (base) position
     dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-    dest_point = [2, -4, 2]
+    dest_point = [1, 5, 3]
     joints_lengths = [2, 2, 2, 2]
     robo_arm_joint_limits = {'x_limits': [0,6], 'y_limits': [-6,6], 'z_limits': [0,6]} # assumed limits
     robo_arm_reach_limit = 6 # lenght of 3 joint is the limit

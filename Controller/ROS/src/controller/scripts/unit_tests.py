@@ -114,7 +114,7 @@ class forward_kinematics_unittests(unittest.TestCase):
         max_decimal_error = 3 # set max decimail error to the same accuracy as IK, 3 decmial places
         np.testing.assert_array_almost_equal(np.array(dest_point), np.array(forward_dest_point), max_decimal_error)
         # second position
-        dest_point = [2, -4, 2]
+        dest_point = [1, -4, 5]
         ik_angles = []
         try:
             ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100)
