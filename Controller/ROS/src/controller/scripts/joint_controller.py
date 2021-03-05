@@ -2,37 +2,30 @@
 
 import rospy
 from std_msgs.msg import Float64MultiArray
-from math import atan2, pi
+from math import atan2, pi, cos, sin
 from robot_kinematics import *
 
 # Check how to fix: cp ./src/controller/scripts/robot_kinematics.py ./devel/lib/controller/robot_kinematics.py
 
+# IK/FK consts
+dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+joints_lengths = [2, 2, 2, 2]
+robo_arm_joint_limits = {'x_limits': [0,6], 'y_limits': [-6,6], 'z_limits': [0,6]} # assumed limits
+robo_arm_reach_limit = 6 # lenght of 3 last joints is the limit
+first_rev_joint_point = Point([0,0,2]) # first revolute joint, from this point reach limit will be computed
+
 # Compute positions of all joints in robot init (base) position
 def get_angles_ik(dest_point):
-    theta_1 = float(atan2(dest_point[1], dest_point[0])) # compute theta_1
-    if theta_1 > pi/2 or theta_1 < -pi/2:
-        theta_1 = 0
-    dh_matrix = [[theta_1, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-
-    _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
-    joints_init_positions = []
-    for jfk in fk_all:
-        joints_init_positions.append(Point([jfk[0][3], jfk[1][3], jfk[2][3]]))
-
-    fab = Fabrik(joints_init_positions, [2, 2, 2, 2], 0.00001, 100)
-    out = fab.compute_goal_joints_positions(dest_point)
-    #print('Goal joints positions:    ' + str(out))
-    ik_angles = fab.compute_roboarm_ik(dest_point)
-    #PRINT_MSG('IK angles: ' + str(ik_angles))
-    ik_angles[0] = theta_1
-    return ik_angles
+    fkine = InverseKinematics()
+    return fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100)
 
 def robot_configuration_callback():
     return None
 
+# Fit IK joint angles into gazebo model joint angles
 def kinematics_poses_to_gazebo(pos_arr):
-    not_to_move = [0, 2, 3]
-    signs = [-1, -1, -1, 1, -1]
+    not_to_move = [0, 2, 3] # some joints angles doesnt need to be changed
+    signs = [-1, -1, -1, 1, -1] # some joints sings must be changed
     for i in range(len(pos_arr)):
         if i in not_to_move:
             pos_arr[i] = pos_arr[i] * signs[i]
@@ -44,56 +37,47 @@ def joint_controller():
     pub = rospy.Publisher('/my_robot/all_joints_positions', Float64MultiArray, queue_size=10)
     rospy.init_node('talker', anonymous=True)
     rate = rospy.Rate(0.10) # 0.1hz
-    
-    dest_point0 = [5, 1, 1]
-    pos0_anglees = get_angles_ik(dest_point0)
-  
-    pos0_arr_mtlb = [pos0_anglees[0], pos0_anglees[1], pos0_anglees[2], pos0_anglees[3], 0.0]
 
-    pos0_arr = pos0_arr_mtlb[:]
-    
-    kinematics_poses_to_gazebo(pos0_arr)
-    print('ik pose: ' + str(pos0_arr))
+    # rectangle path
+    dest_points = [[2, 2, 4], [2, -2, 4], [2, -2, 4], [2, -2, 2]] # 4 points trajectory
 
-    # pos0_arr_mtlb = [0.0, 1.227148865655292, 1.0329403678444162, -1.6755963382038974, 0]
-    # pos0_arr = pos0_arr_mtlb[:]
-    # kinematics_poses_to_gazebo(pos0_arr, [0, 2, 3])
+    # generate circle trajectory:
+    dest_points_circle=[]
+    for t in range(30):
+        r=2
+        y=3+r*cos(t)
+        z=3+r*sin(t)
+        dest_points_circle.append([4, y, z])
 
-    # pos0_arr_mtlb = [0, pi/2, 0, pi/4, 0]
-    # pos0_arr = pos0_arr_mtlb[:]
-    # kinematics_poses_to_gazebo(pos0_arr)
-
-    pos1_arr_mtlb = [0, pi/2, 0, -pi/4, 0]
-    pos1_arr = pos1_arr_mtlb[:]
-    kinematics_poses_to_gazebo(pos1_arr)
-
-    pos2_arr_mtlb = [0, pi/2, 0, -pi/4, 0]
-    pos2_arr = pos2_arr_mtlb[:]
-    kinematics_poses_to_gazebo(pos2_arr)
-
-    pos3_arr_mtlb = [0.0, pi/2, 0, pi/4, 0]
-    pos3_arr = pos3_arr_mtlb[:]
-    kinematics_poses_to_gazebo(pos3_arr)
-
-    pos4_arr_mtlb = [0, pi, 0, 0, 0]
-    pos4_arr = pos4_arr_mtlb[:]
-    kinematics_poses_to_gazebo(pos4_arr)
-
-    positions = [(pos0_arr, pos0_arr_mtlb), (pos1_arr, pos1_arr_mtlb), (pos2_arr, pos2_arr_mtlb), (pos3_arr, pos3_arr_mtlb), (pos4_arr, pos4_arr_mtlb)]
-    steps = 1
     while not rospy.is_shutdown():
         cnt = 0
-        for nextpose in positions:
-            if cnt == steps:
-                continue
-            to_gazebo, from_math = nextpose
+        # Move through the destination points -> circle
+        for dest in dest_points_circle:
+            angles = get_angles_ik(dest)
+            angles_with_wrist = [angles[0], angles[1], angles[2], angles[3], 0.0]
+            gazebo_angles = kinematics_poses_to_gazebo(angles_with_wrist[:])
             print("Setting pose_{}".format(cnt))
-            print('angles: ' + str(from_math))
+            print('angles: ' + str(angles_with_wrist))
             pose = Float64MultiArray()
-            pose.data = to_gazebo
+            pose.data = gazebo_angles
             pub.publish(pose)
             cnt += 1
             rate.sleep()
+
+        '''
+        # Move through the destination points
+        for dest in dest_points:
+            angles = get_angles_ik(dest)
+            angles_with_wrist = [angles[0], angles[1], angles[2], angles[3], 0.0]
+            gazebo_angles = kinematics_poses_to_gazebo(angles_with_wrist[:])
+            print("Setting pose_{}".format(cnt))
+            print('angles: ' + str(angles_with_wrist))
+            pose = Float64MultiArray()
+            pose.data = gazebo_angles
+            pub.publish(pose)
+            cnt += 1
+            rate.sleep()
+        '''
 
 if __name__ == '__main__':
     try:
