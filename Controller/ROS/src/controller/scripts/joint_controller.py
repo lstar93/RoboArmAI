@@ -54,7 +54,7 @@ def joint_controller():
         # Move through the destination points -> circle
         for dest in dest_points_circle:
             angles = get_angles_ik(dest)
-            angles_with_wrist = [angles[0], angles[1], angles[2], angles[3], 0.0]
+            angles_with_wrist = [*angles, 0.0] # all angles plus wrist
             gazebo_angles = kinematics_poses_to_gazebo(angles_with_wrist[:])
             print("Setting pose_{}".format(cnt))
             print('angles: ' + str(angles_with_wrist))

@@ -92,22 +92,23 @@ def rotation_matrix(rot_joint, angle, size = 3):
 # Transformation -> translation + rotation by angle
 # vect = position vector
 def translation_matrix(vect, axis='', angle=0):
+    MATRIX_SIZE = 4
     if len(vect) != 3:
         raise Exception('Incorrect vector size, vector dimension should be (1, 3) -> [x y z]')
     else:
         # rtm -> rotation matrix, 4x4 identity matrix if no angle given
-        rtm = np.identity(4) if not axis else rotation_matrix(axis, angle, 4)
-        for x in range(3):
+        rtm = np.identity(MATRIX_SIZE) if not axis else rotation_matrix(axis, angle, MATRIX_SIZE)
+        for x in range(len(vect)):
             rtm[x,3] = vect[x] # repalce first 3 elems of matrix last column with translated vector x
         return rtm
 
 # DH_i-1_i = Rt(Z, Oi) * Tr([0, 0, Ei]^T) * Tr([ai, 0, 0]^T) * Rt(X, Li)
 def prev_to_curr_joint_transform_matrix(theta_i, epsilon_i, a_i, alpha_i):
-    size_of_mtx = 4
-    rot_mtx_z_theta = rotation_matrix('z', theta_i, size_of_mtx)
+    MATRIX_SIZE = 4
+    rot_mtx_z_theta = rotation_matrix('z', theta_i, MATRIX_SIZE)
     tr_mtx_epsilon = translation_matrix([0, 0, epsilon_i])
     tr_mtx_a = translation_matrix([a_i, 0, 0])
-    rot_mtx_z_alpha = rotation_matrix('x', alpha_i, size_of_mtx)
+    rot_mtx_z_alpha = rotation_matrix('x', alpha_i, MATRIX_SIZE)
     dh_i = rot_mtx_z_theta.dot(tr_mtx_epsilon).dot(tr_mtx_a).dot(rot_mtx_z_alpha)
     return np.array(dh_i)
 
@@ -154,7 +155,7 @@ class Point:
         return [self.x, self.y, self.z]
 
 # matplotlib cannot resize all axes to the same scale so very small numbers make plots impossible to analyze 
-# thus all very small numbers (assume e-10 and less until -e-10) will be rounded to 0 for plotting purposes only
+# thus all very small numbers (e-10 <> -e-10) will be rounded to 0 for plotting purposes only
 def round(num):
     if num > -1*e**-10 and num < 1*e**-10:
         return 0
@@ -185,7 +186,7 @@ class Fabrik:
     err_margin = 0.0
     max_iter_num = 0
 
-    def __init__(self, init_joints_positions, joint_distances, err_margin = 0.0001, max_iter_num = 100):
+    def __init__(self, init_joints_positions, joint_distances, err_margin = 0.001, max_iter_num = 100):
         self.joint_distances = joint_distances
         self.init_joints_positions = init_joints_positions
         self.err_margin = err_margin
@@ -307,7 +308,7 @@ class InverseKinematics:
             dh_matrix[0][0] = theta_1 # replace initial theta_1
 
             # Compute initial xyz possition of every robot joint
-            _, fk_all = forward_kinematics(dh_matrix[0], dh_matrix[1], dh_matrix[2], dh_matrix[3])
+            _, fk_all = forward_kinematics(*dh_matrix)
             init_joints_positions = [Point([x[0][3], x[1][3], x[2][3]]) for x in fk_all]
             PRINT_MSG('Initial joints positions:    ' + str(init_joints_positions))
 
@@ -321,7 +322,7 @@ class InverseKinematics:
             
             # print robot arm
             if verbose:
-                plot_roboarm([joints_triangles[0], joints_triangles[1], joints_triangles[2], joints_triangles[3], init_joints_positions, goal_joints_positions], [init_joints_positions[0], goal_joints_positions[-1]])
+                plot_roboarm([*joints_triangles, init_joints_positions, goal_joints_positions], [init_joints_positions[0], goal_joints_positions[-1]])
         
             return ik_angles
         

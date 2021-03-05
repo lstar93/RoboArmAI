@@ -95,14 +95,15 @@ class forward_kinematics_unittests(unittest.TestCase):
         np.testing.assert_array_almost_equal(np.array([p2.x, p2.y, p2.z]), np.array([3.9045340337332908, 5.713602101199873, 3.9045340337332908]))
 
     def test_fabrik(self):
-        # first position
+        # constants
         dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-        dest_point = [2, -2, 4]
         joints_lengths = [2, 2, 2, 2]
         robo_arm_joint_limits = {'x_limits': [0,6], 'y_limits': [-6,6], 'z_limits': [0,6]} # assumed limits
         robo_arm_reach_limit = 6 # lenght of 3 joint is the limit
         first_rev_joint_point = Point([0,0,2]) # first revolute joint, from this point reach limit will be computed
         fkine = InverseKinematics()
+        # first position
+        dest_point = [2, -2, 4]
         ik_angles = []
         try:
             ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100)
