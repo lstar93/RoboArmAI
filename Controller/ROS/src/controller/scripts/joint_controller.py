@@ -22,6 +22,19 @@ def get_angles_ik(dest_point):
 def robot_configuration_callback():
     return None
 
+def plot_trajectory(points):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    colors = [list(x) for x in numpy.random.rand(len(points),3)] 
+
+    for p,c in zip(points,colors):
+        ax.scatter(round(p.x, 1), round(p.y, 5), round(p.z, 5), color=c)
+
+    plt.show()
+
 # Fit IK joint angles into gazebo model joint angles
 def kinematics_poses_to_gazebo(pos_arr):
     not_to_move = [0, 2, 3] # some joints angles doesnt need to be changed
@@ -36,48 +49,29 @@ def kinematics_poses_to_gazebo(pos_arr):
 def joint_controller():
     pub = rospy.Publisher('/my_robot/all_joints_positions', Float64MultiArray, queue_size=10)
     rospy.init_node('talker', anonymous=True)
-    rate = rospy.Rate(0.10) # 0.1hz
+    rate = rospy.Rate(40) # 40hz
 
-    # rectangle path
-    dest_points = [[2, 2, 4], [2, -2, 4], [2, -2, 4], [2, -2, 2]] # 4 points trajectory
+    # plot_trajectory([Point(x) for x in dest_points_circle]) # plot trajectory
 
-    # generate circle trajectory:
-    dest_points_circle=[]
-    for t in range(30):
+    cnt = 0.01
+    while not rospy.is_shutdown(): 
         r=2
-        y=3+r*cos(t)
-        z=3+r*sin(t)
-        dest_points_circle.append([4, y, z])
-
-    while not rospy.is_shutdown():
-        cnt = 0
+        x=3
+        y=r*sin(cnt)
+        z=3+r*cos(cnt)
         # Move through the destination points -> circle
-        for dest in dest_points_circle:
-            angles = get_angles_ik(dest)
-            angles_with_wrist = [*angles, 0.0] # all angles plus wrist
-            gazebo_angles = kinematics_poses_to_gazebo(angles_with_wrist[:])
-            print("Setting pose_{}".format(cnt))
-            print('angles: ' + str(angles_with_wrist))
-            pose = Float64MultiArray()
-            pose.data = gazebo_angles
-            pub.publish(pose)
-            cnt += 1
-            rate.sleep()
-
-        '''
-        # Move through the destination points
-        for dest in dest_points:
-            angles = get_angles_ik(dest)
-            angles_with_wrist = [angles[0], angles[1], angles[2], angles[3], 0.0]
-            gazebo_angles = kinematics_poses_to_gazebo(angles_with_wrist[:])
-            print("Setting pose_{}".format(cnt))
-            print('angles: ' + str(angles_with_wrist))
-            pose = Float64MultiArray()
-            pose.data = gazebo_angles
-            pub.publish(pose)
-            cnt += 1
-            rate.sleep()
-        '''
+        angles = get_angles_ik([x, y, z])
+        angles_with_wrist = [*angles, 0.0] # all angles plus wrist
+        gazebo_angles = kinematics_poses_to_gazebo(angles_with_wrist[:])
+        print("Setting pose_{}".format(cnt))
+        print('angles: ' + str(angles_with_wrist))
+        print('destination: ' + str([x, y, z]))
+        pose = Float64MultiArray()
+        pose.data = gazebo_angles
+        pub.publish(pose)
+        cnt += 0.01
+        rate.sleep()
+        
 
 if __name__ == '__main__':
     try:

@@ -43,7 +43,7 @@ Rt(z, G):
 
 import numpy.matlib
 import numpy as np
-from math import e, sin, cos, pi, sqrt, atan2, acos
+from math import e, sin, cos, pi, sqrt, atan2, acos, ceil
 
 from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
 import matplotlib.pyplot as plt
@@ -155,13 +155,9 @@ class Point:
         return [self.x, self.y, self.z]
 
 # matplotlib cannot resize all axes to the same scale so very small numbers make plots impossible to analyze 
-# thus all very small numbers (e-10 <> -e-10) will be rounded to 0 for plotting purposes only
-def round(num):
-    if num > -1*e**-10 and num < 1*e**-10:
-        return 0
-    return num
-
+# thus all very small numbers will be rounded to 0 for plotting purposes only
 def plot_roboarm(joints, points = []):
+    PRECISION = 10
     fig = plt.figure()
     ax = fig.add_subplot(111, projection='3d')
     ax.set_xlabel('X')
@@ -169,11 +165,11 @@ def plot_roboarm(joints, points = []):
     ax.set_zlabel('Z')
     colors = [list(x) for x in numpy.random.rand(len(joints) + len(points),3)] 
     for j,c in zip(joints,colors[0:len(joints)]):
-        ax.scatter([round(x.x) for x in j], [round(x.y) for x in j], [round(x.z) for x in j], color=c)
-        ax.plot3D([round(x.x) for x in j], [round(x.y) for x in j], [round(x.z) for x in j], color=c)
+        ax.scatter([round(x.x, PRECISION) for x in j], [round(x.y, PRECISION) for x in j], [round(x.z, PRECISION) for x in j], color=c)
+        ax.plot3D([round(x.x, PRECISION) for x in j], [round(x.y, PRECISION) for x in j], [round(x.z, PRECISION) for x in j], color=c)
 
     for p,c in zip(points,colors[len(joints):]):
-        ax.scatter(round(p.x), round(p.y), round(p.z), color=c)
+        ax.scatter(round(p.x, PRECISION), round(p.y, PRECISION), round(p.z, PRECISION), color=c)
 
     plt.show()
 
@@ -312,6 +308,8 @@ class InverseKinematics:
             init_joints_positions = [Point([x[0][3], x[1][3], x[2][3]]) for x in fk_all]
             PRINT_MSG('Initial joints positions:    ' + str(init_joints_positions))
 
+            PRINT_MSG('Dest joints positions:    ' + str(dest_point))
+
             # Compute joint positions using FABRIK
             fab = Fabrik(init_joints_positions, joints_lengths, max_err, max_iterations_num)
             goal_joints_positions = fab.compute_goal_joints_positions(dest_point, VERBOSE)
@@ -340,12 +338,35 @@ if __name__ == '__main__':
     first_rev_joint_point = Point([0,0,2]) # first revolute joint, from this point reach limit will be computed
     fkine = InverseKinematics()
     ik_angles = []
-    try:
-        ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100, VERBOSE)
-        print('IK angles: ' + str(ik_angles))
-        dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-        fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3])
-        print(fk)
-    except Exception as e:
-        print(e)
+    
+    # generate circle trajectory:
+    dest_points_circle=[]
+    for t in range(10):
+        r=2
+        x=3
+        y=r*sin(t)
+        z=3+r*cos(t)
+        dest_points_circle.append([x, y, z])
+        print([x, y, z])
+
+    fk_trajectory_points = []
+    plot_trajectory([Point(x) for x in dest_points_circle]) # plot trajectory
+    for dest_point in dest_points_circle:
+        try:
+            ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100, VERBOSE)
+            print('IK angles: ' + str(ik_angles))
+            dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+            fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3])
+            print('IK destination: ' + str(dest_point))
+            print('FK destination: ' + str([round(fk[0,3], 3), fk[1,3], fk[2,3]]))
+            err_list = [abs(round(fk[0,3], 3) - dest_point[0]), abs(fk[1,3] - dest_point[1]), abs(fk[2,3] - dest_point[2])]
+            # print('ER destination: ' + str(err_list))
+            if any(x > 0.001 for x in err_list):
+                raise Exception('position error greater than 0.001: ' + str(err_list))
+            fk_trajectory_points.append([fk[0,3], fk[1,3], fk[2,3]])
+            print()
+        except Exception as e:
+            print(e)
+    
+    plot_trajectory([Point(x) for x in fk_trajectory_points]) # plot trajectory from fk
 '''
