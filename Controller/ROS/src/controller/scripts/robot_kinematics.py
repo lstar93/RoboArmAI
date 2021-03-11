@@ -41,6 +41,8 @@ Rt(z, G):
      [0,         0,       1   ]]
 '''
 
+import random as rand
+from numpy.lib.utils import _set_function_name
 import numpy.matlib
 import numpy as np
 from math import e, sin, cos, pi, sqrt, atan2, acos, ceil
@@ -132,9 +134,7 @@ class Point:
     z = 0.0
 
     def __init__(self, xyz):
-        self.x = xyz[0]
-        self.y = xyz[1]
-        self.z = xyz[2]
+        self.x, self.y, self.z = xyz
 
     def distance_to_point(self, p):
         return sqrt(pow((self.x - p.x), 2) + pow((self.y - p.y), 2) + pow((self.z - p.z), 2))
@@ -241,6 +241,80 @@ class Fabrik:
 
         return goal_joints_positions
 
+from scipy.stats import truncnorm
+
+def plot_points_3d(points):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    colors = [list(x) for x in numpy.random.rand(len(points),3)] 
+
+    for p,c in zip(points,colors):
+        ax.scatter(round(p.x, 1), round(p.y, 5), round(p.z, 5), color=c)
+
+    plt.show()
+
+# neural network IK approach
+class ANN:
+    effector_workspace_limits = {}
+    angles_limits = {}
+    dh_matrix = []
+
+    def __init__(self, angles_limits, effector_workspace_limits, dh_matrix):
+        self.angles_limits = angles_limits
+        self.effector_workspace_limits = effector_workspace_limits
+        self.dh_matrix = dh_matrix
+
+    #rett = truncnorm(a=-pi, b=pi, scale=pi).rvs(size=10)
+    #print(rett)
+    #rand.uniform(*limitv)
+
+    def get_truncated_normal_distribution(self, mean=0, sd=1, low=0, upp=10):
+        return truncnorm((low - mean) / sd, (upp - mean) / sd, loc=mean, scale=sd)
+
+    # prepare trainig data
+    def generate_trainig_data(self, distribution = 'normal', no_of_samples = 100):
+        samples_x = [] # input  samples -> angles
+        samples_y = [] # output samples -> positions
+        training_data = [] # samples reachable for effector
+        for _, limitv in self.angles_limits.items():
+            if distribution == 'normal':
+                val = list(self.get_truncated_normal_distribution(mean=0, sd=0.5, low=limitv[0], upp=limitv[1]).rvs(no_of_samples))
+                samples_x.append(val)
+            elif distribution == 'uniform':
+                samples_x.append([rand.uniform(*limitv) for x in range(no_of_samples)])
+
+        # plt.hist(samples_x, bins = no_of_samples)
+        # plt.show()
+
+        # use FK to generate positions
+        pos_x, pos_y, pos_z = [], [], []
+        for x in range(no_of_samples):
+            dest_dh_matrix = self.dh_matrix[:]
+            dest_dh_matrix[0] = [samples_x[i][x] for i in range(len(samples_x))]
+            number_of_joints = len(dest_dh_matrix[0])
+            fk, _ = forward_kinematics(*dest_dh_matrix)
+            in_reach = not any(dp < limitv[1][0] or dp > limitv[1][1] for dp, limitv in \
+                           zip([fk[0,3], fk[1,3], fk[2,3]], self.effector_workspace_limits.items()))
+            if in_reach:
+                for i in range(number_of_joints):
+                    if len(samples_y) < number_of_joints:
+                        samples_y.append([])
+                    samples_y[i].append(dest_dh_matrix[0][i])
+                pos_x.append(fk[0,3])
+                pos_y.append(fk[1,3])
+                pos_z.append(fk[2,3])
+        
+        training_data = [*samples_y, pos_x, pos_y, pos_z]
+
+        # print data in xyz diagram
+        # coords = list(map(list, zip(pos_x, pos_y, pos_z))) # map to list all first positions elements and cast map to list
+        # plot_points_3d([Point([*x]) for x in coords]) # create Points from lists
+
+        return training_data
+
 # Robo Arm inverse kinematics class
 class InverseKinematics:
     # Compute angles from cosine theorem
@@ -289,14 +363,16 @@ class InverseKinematics:
         pass
 
     # use one of methods to compute inverse kinematics
-    def compute_roboarm_ik(self, method, dest_point, dh_matrix, joints_lengths, joints_limits, reach_limit, first_rev_joint_point, max_err = 0.001, max_iterations_num = 100, verbose = False):
+    def compute_roboarm_ik(self, method, dest_point, dh_matrix, joints_lengths, workspace_limits, first_rev_joint_point, max_err = 0.001, max_iterations_num = 100, verbose = False):
         # Some basic limits check
-        if any(dp < limitv[1][0] or dp > limitv[1][1] for dp, limitv in zip(dest_point, joints_limits.items())):
-            raise Exception("Point is out of RoboArm reach area! Limits: {}, ".format(joints_limits))
-        
+        if any(dp < limitv[1][0] or dp > limitv[1][1] for dp, limitv in zip(dest_point, workspace_limits.items())):
+            raise Exception("Point is out of RoboArm reach area! Limits: {}, ".format(workspace_limits))
+
+        effector_reach_limit = workspace_limits['x_limits'][1]
+
         # Roboarm reach distance check
-        if first_rev_joint_point.distance_to_point(Point(dest_point)) > reach_limit:
-            raise Exception("Point is out of RoboArm reach area! Reach limit is {}, but the distance to point is {}".format(reach_limit, first_rev_joint_point.distance_to_point(Point(dest_point))))
+        if first_rev_joint_point.distance_to_point(Point(dest_point)) > effector_reach_limit:
+            raise Exception("Point is out of RoboArm reach area! Reach limit is {}, but the distance to point is {}".format(effector_reach_limit, first_rev_joint_point.distance_to_point(Point(dest_point))))
 
         if method.lower() == "fabrik":
             # FABRIK 
@@ -326,15 +402,37 @@ class InverseKinematics:
         
         raise Exception('Unknown method!')
 
+# test ANN
+if __name__ == '__main__':
+    dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
+    effector_workspace_limits = {'x_limits': [1,6], 'y_limits': [-6,6], 'z_limits': [0,6]} # assumed effector workspace limits
+    joints_angles_limits = {'theta_1': [-pi/2,pi/2], 'theta_2': [-pi/4,pi/2], 'theta_3': [-pi/2,pi/2], 'theta_4': [-pi/2,pi/2]} # assumed joints angles limits
+    max_reach_distance = 6
+    ann = ANN(joints_angles_limits, effector_workspace_limits, dh_matrix)
+    ann.generate_trainig_data()
+
+
+# test FABRIK
 '''
-# test
+def plot_trajectory(points):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    ax.set_xlabel('X')
+    ax.set_ylabel('Y')
+    ax.set_zlabel('Z')
+    colors = [list(x) for x in numpy.random.rand(len(points),3)] 
+
+    for p,c in zip(points,colors):
+        ax.scatter(round(p.x, 1), round(p.y, 5), round(p.z, 5), color=c)
+
+    plt.show()
+
 if __name__ == '__main__':
     # Compute positions of all joints in robot init (base) position
     dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
     dest_point = [1, 5, 3]
     joints_lengths = [2, 2, 2, 2]
-    robo_arm_joint_limits = {'x_limits': [0,6], 'y_limits': [-6,6], 'z_limits': [0,6]} # assumed limits
-    robo_arm_reach_limit = 6 # lenght of 3 joint is the limit
+    effector_workspace_limits = {'x_limits': [1,6], 'y_limits': [-6,6], 'z_limits': [0,6]} # assumed limits
     first_rev_joint_point = Point([0,0,2]) # first revolute joint, from this point reach limit will be computed
     fkine = InverseKinematics()
     ik_angles = []
@@ -353,10 +451,10 @@ if __name__ == '__main__':
     plot_trajectory([Point(x) for x in dest_points_circle]) # plot trajectory
     for dest_point in dest_points_circle:
         try:
-            ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100, VERBOSE)
+            ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, effector_workspace_limits, first_rev_joint_point, 0.001, 100, VERBOSE)
             print('IK angles: ' + str(ik_angles))
             dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-            fk, _ = forward_kinematics(dh_matrix_out[0], dh_matrix_out[1], dh_matrix_out[2], dh_matrix_out[3])
+            fk, _ = forward_kinematics(*dh_matrix_out)
             print('IK destination: ' + str(dest_point))
             print('FK destination: ' + str([round(fk[0,3], 3), fk[1,3], fk[2,3]]))
             err_list = [abs(round(fk[0,3], 3) - dest_point[0]), abs(fk[1,3] - dest_point[1]), abs(fk[2,3] - dest_point[2])]
