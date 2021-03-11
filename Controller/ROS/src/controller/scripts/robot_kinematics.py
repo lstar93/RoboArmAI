@@ -42,10 +42,13 @@ Rt(z, G):
 '''
 
 import random as rand
+from numpy.core.fromnumeric import shape
 from numpy.lib.utils import _set_function_name
 import numpy.matlib
 import numpy as np
-from math import e, sin, cos, pi, sqrt, atan2, acos, ceil
+from math import e, sin, cos, pi, sqrt, atan2, acos
+import sklearn
+from sklearn import model_selection
 
 from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
 import matplotlib.pyplot as plt
@@ -275,10 +278,8 @@ class ANN:
         return truncnorm((low - mean) / sd, (upp - mean) / sd, loc=mean, scale=sd)
 
     # prepare trainig data
-    def generate_trainig_data(self, distribution = 'normal', no_of_samples = 100):
+    def generate_trainig_data(self, distribution = 'normal', no_of_samples = 50):
         samples_x = [] # input  samples -> angles
-        samples_y = [] # output samples -> positions
-        training_data = [] # samples reachable for effector
         for _, limitv in self.angles_limits.items():
             if distribution == 'normal':
                 val = list(self.get_truncated_normal_distribution(mean=0, sd=0.5, low=limitv[0], upp=limitv[1]).rvs(no_of_samples))
@@ -291,6 +292,8 @@ class ANN:
 
         # use FK to generate positions
         pos_x, pos_y, pos_z = [], [], []
+        input_data_list = [] # raw list of lists for input data
+        output_data_list = [] # raw list of lists for output data
         for x in range(no_of_samples):
             dest_dh_matrix = self.dh_matrix[:]
             dest_dh_matrix[0] = [samples_x[i][x] for i in range(len(samples_x))]
@@ -300,20 +303,55 @@ class ANN:
                            zip([fk[0,3], fk[1,3], fk[2,3]], self.effector_workspace_limits.items()))
             if in_reach:
                 for i in range(number_of_joints):
-                    if len(samples_y) < number_of_joints:
-                        samples_y.append([])
-                    samples_y[i].append(dest_dh_matrix[0][i])
+                    if len(input_data_list) < number_of_joints:
+                        input_data_list.append([])
+                    input_data_list[i].append(dest_dh_matrix[0][i])
                 pos_x.append(fk[0,3])
                 pos_y.append(fk[1,3])
                 pos_z.append(fk[2,3])
-        
-        training_data = [*samples_y, pos_x, pos_y, pos_z]
+        output_data_list = [pos_x, pos_y, pos_z]
 
+        # create input and output array then transpose it to create array of shape [SAMPLES x FEATURES] 
+        input_data = np.transpose(np.asarray(input_data_list, dtype=np.float32)) # training input data -> thetas
+        output_data = np.transpose(np.array([x for x in output_data_list])) # training output data -> coordinates
+
+        # training_data = [*inpud_data, *output_data]
         # print data in xyz diagram
-        # coords = list(map(list, zip(pos_x, pos_y, pos_z))) # map to list all first positions elements and cast map to list
+        # coords = list(map(list, zip(*output_data))) # map to list all first positions elements and cast map to list
         # plot_points_3d([Point([*x]) for x in coords]) # create Points from lists
 
-        return training_data
+        # split data into training (70%), test (15%) and evaluation (15%)
+        data_skaler = sklearn.preprocessing.MinMaxScaler(feature_range=(-1,1))
+        input, input_test_eval, output, output_test_eval = model_selection.train_test_split(input_data, output_data, test_size=0.3, random_state=42)
+        input_test, input_eval, output_test, output_eval = model_selection.train_test_split(input_test_eval, output_test_eval, test_size=0.5, random_state=42) # split test and eval to 15% of whole dataset each
+        # fit data to [-1,1] using scaler
+        input_scaled = data_skaler.fit_transform(input)
+        output_scaled = data_skaler.fit_transform(output)
+        input_test_scaled = data_skaler.fit_transform(input_test)
+        output_test_scaled = data_skaler.fit_transform(output_test)
+        input_eval_scaled = data_skaler.fit_transform(input_eval)
+        output_eval_scaled = data_skaler.fit_transform(output_eval)
+        '''
+        print('TRAINING')
+        print(input)
+        print()
+        print(output)
+        print('\nTEST')
+        print(input_test)
+        print()
+        print(output_test)
+        print('\nEVALUATION')
+        print(input_eval)
+        print()
+        print(output_eval)
+        print()
+        '''
+        # return input_data, output_data # return input (thetas) and output data (positions)
+        return input_scaled, output_scaled, input_test_scaled, output_test_scaled, input_eval_scaled, output_eval_scaled
+
+    def build_model():
+        pass
+
 
 # Robo Arm inverse kinematics class
 class InverseKinematics:
