@@ -42,6 +42,7 @@ Rt(z, G):
 '''
 
 import random as rand
+from keras import callbacks
 from numpy.core.fromnumeric import shape
 from numpy.lib.utils import _set_function_name
 import numpy.matlib
@@ -49,6 +50,8 @@ import numpy as np
 from math import e, sin, cos, pi, sqrt, atan2, acos
 import sklearn
 from sklearn import model_selection
+import keras
+import tensorflow as tf
 
 from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
 import matplotlib.pyplot as plt
@@ -264,6 +267,8 @@ class ANN:
     effector_workspace_limits = {}
     angles_limits = {}
     dh_matrix = []
+    in_data_skaler = sklearn.preprocessing.MinMaxScaler(feature_range=(-1,1))
+    out_data_skaler = sklearn.preprocessing.MinMaxScaler(feature_range=(-1,1))
 
     def __init__(self, angles_limits, effector_workspace_limits, dh_matrix):
         self.angles_limits = angles_limits
@@ -321,37 +326,45 @@ class ANN:
         # plot_points_3d([Point([*x]) for x in coords]) # create Points from lists
 
         # split data into training (70%), test (15%) and evaluation (15%)
-        data_skaler = sklearn.preprocessing.MinMaxScaler(feature_range=(-1,1))
         input, input_test_eval, output, output_test_eval = model_selection.train_test_split(input_data, output_data, test_size=0.3, random_state=42)
         input_test, input_eval, output_test, output_eval = model_selection.train_test_split(input_test_eval, output_test_eval, test_size=0.5, random_state=42) # split test and eval to 15% of whole dataset each
         # fit data to [-1,1] using scaler
-        input_scaled = data_skaler.fit_transform(input)
-        output_scaled = data_skaler.fit_transform(output)
-        input_test_scaled = data_skaler.fit_transform(input_test)
-        output_test_scaled = data_skaler.fit_transform(output_test)
-        input_eval_scaled = data_skaler.fit_transform(input_eval)
-        output_eval_scaled = data_skaler.fit_transform(output_eval)
-        '''
-        print('TRAINING')
-        print(input)
-        print()
-        print(output)
-        print('\nTEST')
-        print(input_test)
-        print()
-        print(output_test)
-        print('\nEVALUATION')
-        print(input_eval)
-        print()
-        print(output_eval)
-        print()
-        '''
+        
+        input_scaled = self.in_data_skaler.fit_transform(input)
+        output_scaled = self.out_data_skaler.fit_transform(output)
+        input_test_scaled = self.in_data_skaler.fit_transform(input_test)
+        output_test_scaled = self.out_data_skaler.fit_transform(output_test)
+        input_eval_scaled = self.in_data_skaler.fit_transform(input_eval)
+        output_eval_scaled = self.out_data_skaler.fit_transform(output_eval)
         # return input_data, output_data # return input (thetas) and output data (positions)
         return input_scaled, output_scaled, input_test_scaled, output_test_scaled, input_eval_scaled, output_eval_scaled
+        '''
+        return input, output, input_test, output_test, input_eval, output_eval
+        '''
 
-    def build_model():
-        pass
+    def customloss(self, yTrue, yPred):
+        return (keras.backend.sum((yTrue - yPred)**2))/20
 
+    def build_model(self):
+        model = keras.Sequential()
+        model.add(keras.layers.Dense(4, use_bias=True, activation='linear')) # theta1, theta2, theta3, theta4 -> input layer
+        model.add(keras.layers.Dense(100, use_bias=True, activation='tanh')) # hidden layer 100 neurons
+        model.add(keras.layers.Dense(3, use_bias=True, activation='linear')) # x, y, z -> output layer
+        model.compile(optimizer=keras.optimizers.Adam(0.05), loss=self.customloss, metrics=['accuracy'])
+        # model.compile(optimizer=keras.optimizers.RMSprop(), loss=keras.losses.SparseCategoricalCrossentropy(),metrics=[keras.metrics.Accuracy()])
+        return model
+
+    def train_model(self):
+        model = self.build_model()
+        data_in, data_out, data_test_in, data_test_out, data_eval_in, data_eval_out = self.generate_trainig_data(no_of_samples=100)
+        history = model.fit(data_in, data_out, epochs=100, validation_data=(data_eval_in, data_eval_out), callbacks=[keras.callbacks.TensorBoard()]) # callbacks=[keras.callbacks.TensorBoard()],
+        print(history.history)
+        loss, mae = model.evaluate(data_test_in, data_test_out, verbose=0)
+        print('Testing set Mean Abs Error: {}, loss: {}'.format(mae, loss))
+        print(self.in_data_skaler.inverse_transform(data_in[:10]))
+        print(self.out_data_skaler.inverse_transform(data_out[:10]))
+        predictions = model.predict(data_in)
+        print(self.out_data_skaler.inverse_transform(predictions[:10]))
 
 # Robo Arm inverse kinematics class
 class InverseKinematics:
@@ -447,7 +460,7 @@ if __name__ == '__main__':
     joints_angles_limits = {'theta_1': [-pi/2,pi/2], 'theta_2': [-pi/4,pi/2], 'theta_3': [-pi/2,pi/2], 'theta_4': [-pi/2,pi/2]} # assumed joints angles limits
     max_reach_distance = 6
     ann = ANN(joints_angles_limits, effector_workspace_limits, dh_matrix)
-    ann.generate_trainig_data()
+    ann.train_model()
 
 
 # test FABRIK
