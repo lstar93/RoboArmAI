@@ -52,6 +52,7 @@ import sklearn
 from sklearn import model_selection
 import keras
 import tensorflow as tf
+import keras.backend as K
 
 from mpl_toolkits.mplot3d import Axes3D # <--- This is important for 3d plotting 
 import matplotlib.pyplot as plt
@@ -269,28 +270,26 @@ class ANN:
     dh_matrix = []
     in_data_skaler = sklearn.preprocessing.MinMaxScaler(feature_range=(-1,1))
     out_data_skaler = sklearn.preprocessing.MinMaxScaler(feature_range=(-1,1))
+    model = None
 
     def __init__(self, angles_limits, effector_workspace_limits, dh_matrix):
         self.angles_limits = angles_limits
         self.effector_workspace_limits = effector_workspace_limits
         self.dh_matrix = dh_matrix
 
-    #rett = truncnorm(a=-pi, b=pi, scale=pi).rvs(size=10)
-    #print(rett)
-    #rand.uniform(*limitv)
-
     def get_truncated_normal_distribution(self, mean=0, sd=1, low=0, upp=10):
         return truncnorm((low - mean) / sd, (upp - mean) / sd, loc=mean, scale=sd)
 
     # prepare trainig data
-    def generate_trainig_data(self, distribution = 'normal', no_of_samples = 50):
-        samples_x = [] # input  samples -> angles
+    def generate_trainig_data(self, distribution = 'normal', no_of_samples = 100):
+        samples_x = [] # output samples -> angles
         for _, limitv in self.angles_limits.items():
             if distribution == 'normal':
                 val = list(self.get_truncated_normal_distribution(mean=0, sd=0.5, low=limitv[0], upp=limitv[1]).rvs(no_of_samples))
                 samples_x.append(val)
             elif distribution == 'uniform':
                 samples_x.append([rand.uniform(*limitv) for x in range(no_of_samples)])
+        samples_x[0] = [0 for x in range(len(samples_x[0]))]
 
         # plt.hist(samples_x, bins = no_of_samples)
         # plt.show()
@@ -308,17 +307,17 @@ class ANN:
                            zip([fk[0,3], fk[1,3], fk[2,3]], self.effector_workspace_limits.items()))
             if in_reach:
                 for i in range(number_of_joints):
-                    if len(input_data_list) < number_of_joints:
-                        input_data_list.append([])
-                    input_data_list[i].append(dest_dh_matrix[0][i])
+                    if len(output_data_list) < number_of_joints:
+                        output_data_list.append([])
+                    output_data_list[i].append(dest_dh_matrix[0][i])
                 pos_x.append(fk[0,3])
                 pos_y.append(fk[1,3])
                 pos_z.append(fk[2,3])
-        output_data_list = [pos_x, pos_y, pos_z]
+        input_data_list = [pos_x, pos_y, pos_z]
 
         # create input and output array then transpose it to create array of shape [SAMPLES x FEATURES] 
-        input_data = np.transpose(np.asarray(input_data_list, dtype=np.float32)) # training input data -> thetas
-        output_data = np.transpose(np.array([x for x in output_data_list])) # training output data -> coordinates
+        output_data = np.transpose(np.asarray(output_data_list, dtype=np.float32)) # training input data -> thetas
+        input_data = np.transpose(np.array([x for x in input_data_list])) # training output data -> coordinates
 
         # training_data = [*inpud_data, *output_data]
         # print data in xyz diagram
@@ -328,43 +327,41 @@ class ANN:
         # split data into training (70%), test (15%) and evaluation (15%)
         input, input_test_eval, output, output_test_eval = model_selection.train_test_split(input_data, output_data, test_size=0.3, random_state=42)
         input_test, input_eval, output_test, output_eval = model_selection.train_test_split(input_test_eval, output_test_eval, test_size=0.5, random_state=42) # split test and eval to 15% of whole dataset each
+
         # fit data to [-1,1] using scaler
-        
         input_scaled = self.in_data_skaler.fit_transform(input)
         output_scaled = self.out_data_skaler.fit_transform(output)
         input_test_scaled = self.in_data_skaler.fit_transform(input_test)
         output_test_scaled = self.out_data_skaler.fit_transform(output_test)
         input_eval_scaled = self.in_data_skaler.fit_transform(input_eval)
         output_eval_scaled = self.out_data_skaler.fit_transform(output_eval)
-        # return input_data, output_data # return input (thetas) and output data (positions)
+
         return input_scaled, output_scaled, input_test_scaled, output_test_scaled, input_eval_scaled, output_eval_scaled
-        '''
-        return input, output, input_test, output_test, input_eval, output_eval
-        '''
 
-    def customloss(self, yTrue, yPred):
-        return (keras.backend.sum((yTrue - yPred)**2))/20
+    def customloss(self, yTrue, yPred, no_of_samples):
+        return (keras.backend.sum((yTrue - yPred)**2))/no_of_samples
 
-    def build_model(self):
-        model = keras.Sequential()
-        model.add(keras.layers.Dense(4, use_bias=True, activation='linear')) # theta1, theta2, theta3, theta4 -> input layer
-        model.add(keras.layers.Dense(100, use_bias=True, activation='tanh')) # hidden layer 100 neurons
-        model.add(keras.layers.Dense(3, use_bias=True, activation='linear')) # x, y, z -> output layer
-        model.compile(optimizer=keras.optimizers.Adam(0.05), loss=self.customloss, metrics=['accuracy'])
-        # model.compile(optimizer=keras.optimizers.RMSprop(), loss=keras.losses.SparseCategoricalCrossentropy(),metrics=[keras.metrics.Accuracy()])
-        return model
+    def train_model(self, no_of_samples=10000, epochs=1000):
+        self.model = keras.Sequential()
+        self.model.add(keras.layers.Dense(3, use_bias=True, activation='linear')) # x, y, z -> input layer
+        self.model.add(keras.layers.Dense(100, use_bias=True, activation='sigmoid')) # hidden layer 100 neurons
+        self.model.add(keras.layers.Dense(4, use_bias=True, activation='linear')) # theta1, theta2, theta3, theta4 -> output layer
+        self.model.compile(optimizer=keras.optimizers.Adam(lr=1e-5), loss=[lambda yTrue, yPred: self.customloss(yTrue, yPred, no_of_samples)], metrics=['accuracy'])
+        data_in, data_out, data_test_in, data_test_out, data_eval_in, data_eval_out = self.generate_trainig_data(no_of_samples=no_of_samples)
+        history = self.model.fit(data_in, data_out, epochs=epochs, validation_data=(data_eval_in, data_eval_out), callbacks=[keras.callbacks.TensorBoard()]) # callbacks=[keras.callbacks.TensorBoard()],
+        loss, mae = self.model.evaluate(data_test_in, data_test_out, verbose=0)
+        return history, mae, loss, self.model
 
-    def train_model(self):
-        model = self.build_model()
-        data_in, data_out, data_test_in, data_test_out, data_eval_in, data_eval_out = self.generate_trainig_data(no_of_samples=100)
-        history = model.fit(data_in, data_out, epochs=100, validation_data=(data_eval_in, data_eval_out), callbacks=[keras.callbacks.TensorBoard()]) # callbacks=[keras.callbacks.TensorBoard()],
-        print(history.history)
-        loss, mae = model.evaluate(data_test_in, data_test_out, verbose=0)
-        print('Testing set Mean Abs Error: {}, loss: {}'.format(mae, loss))
-        print(self.in_data_skaler.inverse_transform(data_in[:10]))
-        print(self.out_data_skaler.inverse_transform(data_out[:10]))
-        predictions = model.predict(data_in)
-        print(self.out_data_skaler.inverse_transform(predictions[:10]))
+    def predict_ik(self, position):
+        arraynp = np.array(position)
+        position_scaled = self.in_data_skaler.fit_transform(arraynp)
+        predictions = self.model.predict(position_scaled)
+        self.out_data_skaler.inverse_transform(predictions)
+        return predictions
+
+'''
+ 
+'''
 
 # Robo Arm inverse kinematics class
 class InverseKinematics:
@@ -460,8 +457,18 @@ if __name__ == '__main__':
     joints_angles_limits = {'theta_1': [-pi/2,pi/2], 'theta_2': [-pi/4,pi/2], 'theta_3': [-pi/2,pi/2], 'theta_4': [-pi/2,pi/2]} # assumed joints angles limits
     max_reach_distance = 6
     ann = ANN(joints_angles_limits, effector_workspace_limits, dh_matrix)
-    ann.train_model()
+    ann.train_model(10000, 1000)
+    ik_angles_ann = list(ann.predict_ik([[4, 0, 3]]))
+    print('ANN    IK angles: ' + str(ik_angles_ann))
 
+    # FABRIK
+    dest_point = [4, 0, 3]
+    joints_lengths = [2, 2, 2, 2]
+    effector_workspace_limits = {'x_limits': [1,6], 'y_limits': [-6,6], 'z_limits': [0,6]} # assumed limits
+    first_rev_joint_point = Point([0,0,2]) # first revolute joint, from this point reach limit will be computed
+    fkine = InverseKinematics()
+    ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, effector_workspace_limits, first_rev_joint_point, 0.001, 100, False)
+    print('FABRIK IK angles: ' + str(ik_angles))
 
 # test FABRIK
 '''
