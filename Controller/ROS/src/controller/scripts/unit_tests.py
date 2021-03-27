@@ -1,9 +1,11 @@
 import unittest
 import numpy as np
 from math import sin, cos, pi
-from robot_kinematics import rotation_matrix, translation_matrix, prev_to_curr_joint_transform_matrix, forward_kinematics, Point, InverseKinematics
+from robot_kinematics import ForwardKinematics, Point, InverseKinematics
 
 class forward_kinematics_unittests(unittest.TestCase):
+
+    fkine = ForwardKinematics()
 
     theta = pi/2
     rot_x_matrix = np.array([[1,0,0],
@@ -21,17 +23,17 @@ class forward_kinematics_unittests(unittest.TestCase):
                                    [0,0,1,3],
                                    [0,0,0,1]])
 
-    transformation_matrix_x = rotation_matrix('x', theta, 4)
+    transformation_matrix_x = fkine.rotation_matrix('x', theta, 4)
     transformation_matrix_x[0,3] = 1
     transformation_matrix_x[1,3] = 2
     transformation_matrix_x[2,3] = 3
 
-    transformation_matrix_y = rotation_matrix('y', theta, 4)
+    transformation_matrix_y = fkine.rotation_matrix('y', theta, 4)
     transformation_matrix_y[0,3] = 1
     transformation_matrix_y[1,3] = 2
     transformation_matrix_y[2,3] = 3
 
-    transformation_matrix_z = rotation_matrix('z', theta, 4)
+    transformation_matrix_z = fkine.rotation_matrix('z', theta, 4)
     transformation_matrix_z[0,3] = 1
     transformation_matrix_z[1,3] = 2
     transformation_matrix_z[2,3] = 3
@@ -59,28 +61,33 @@ class forward_kinematics_unittests(unittest.TestCase):
                                 [0,0,0,1]])
 
     def test_rotation_matrix(self):
-        np.testing.assert_array_almost_equal(self.rot_x_matrix, rotation_matrix('x', pi/2))
-        np.testing.assert_array_almost_equal(self.rot_y_matrix, rotation_matrix('y', pi/2))
-        np.testing.assert_array_almost_equal(self.rot_z_matrix, rotation_matrix('z', pi/2))
+        fkine = ForwardKinematics()
+        np.testing.assert_array_almost_equal(self.rot_x_matrix, fkine.rotation_matrix('x', pi/2))
+        np.testing.assert_array_almost_equal(self.rot_y_matrix, fkine.rotation_matrix('y', pi/2))
+        np.testing.assert_array_almost_equal(self.rot_z_matrix, fkine.rotation_matrix('z', pi/2))
 
     def test_translation_matrix(self):
-        np.testing.assert_array_almost_equal(self.translation_matrix, translation_matrix([1, 2, 3]))
+        fkine = ForwardKinematics()
+        np.testing.assert_array_almost_equal(self.translation_matrix, fkine.translation_matrix([1, 2, 3]))
         
     # transformation -> translation + rotation
     def test_transformation_matrix(self):
-        np.testing.assert_array_almost_equal(self.transformation_matrix_x, translation_matrix([1, 2, 3], 'x', pi/2))
-        np.testing.assert_array_almost_equal(self.transformation_matrix_y, translation_matrix([1, 2, 3], 'y', pi/2))
-        np.testing.assert_array_almost_equal(self.transformation_matrix_z, translation_matrix([1, 2, 3], 'z', pi/2))
+        fkine = ForwardKinematics()
+        np.testing.assert_array_almost_equal(self.transformation_matrix_x, fkine.translation_matrix([1, 2, 3], 'x', pi/2))
+        np.testing.assert_array_almost_equal(self.transformation_matrix_y, fkine.translation_matrix([1, 2, 3], 'y', pi/2))
+        np.testing.assert_array_almost_equal(self.transformation_matrix_z, fkine.translation_matrix([1, 2, 3], 'z', pi/2))
 
     def test_prev_to_curr_joint_transform_matrix(self):
-        np.testing.assert_array_almost_equal(self.dh_test_arr, prev_to_curr_joint_transform_matrix(pi/2, 3, 5, pi))
+        fkine = ForwardKinematics()
+        np.testing.assert_array_almost_equal(self.dh_test_arr, fkine.prev_to_curr_joint_transform_matrix(pi/2, 3, 5, pi))
 
     def test_forward_kinematics(self):
-        tout, _ = forward_kinematics([pi/4, pi/4, -pi/4, -pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
+        fkine = ForwardKinematics()
+        tout, _ = fkine.forward_kinematics([pi/4, pi/4, -pi/4, -pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
         np.testing.assert_array_almost_equal(self.f_kine_0, tout)
-        tout1, _ = forward_kinematics([pi/4, pi/4, pi/4, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
+        tout1, _ = fkine.forward_kinematics([pi/4, pi/4, pi/4, pi/4], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
         np.testing.assert_array_almost_equal(self.f_kine_1, tout1)
-        tout2, _ = forward_kinematics([0, pi/3, -pi/3, -pi/3], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
+        tout2, _ = fkine.forward_kinematics([0, pi/3, -pi/3, -pi/3], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0])
         np.testing.assert_array_almost_equal(self.f_kine_2, tout2)
 
     def test_point(self):
@@ -99,21 +106,23 @@ class forward_kinematics_unittests(unittest.TestCase):
         dh_matrix = [[0, pi/2, 0, 0], [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
         joints_lengths = [2, 2, 2, 2]
         robo_arm_joint_limits = {'x_limits': [0,6], 'y_limits': [-6,6], 'z_limits': [0,6]} # assumed limits
-        robo_arm_reach_limit = 6 # lenght of 3 joint is the limit
         first_rev_joint_point = Point([0,0,2]) # first revolute joint, from this point reach limit will be computed
-        fkine = InverseKinematics()
         dest_points = [[2, -2, 4], [1, -4, 5], [1, -2, 3], [1, 3, 1], [2, 2, 4]]
+        # kinematics engines
+        ikine = InverseKinematics(dh_matrix, joints_lengths, robo_arm_joint_limits, first_rev_joint_point)
+        fkine = ForwardKinematics()
+
         for dest_point in dest_points:
             ik_angles = []
             try:
-                ik_angles = fkine.compute_roboarm_ik('FABRIK', dest_point, dh_matrix, joints_lengths, robo_arm_joint_limits, robo_arm_reach_limit, first_rev_joint_point, 0.001, 100)
+                ik_angles = ikine.compute_roboarm_ik('FABRIK', dest_point, 0.001, 100)
                 dh_matrix_out = [ik_angles, [2, 0, 0, 0], [0, 2, 2, 2], [pi/2, 0, 0, 0]]
-                fk, _ = forward_kinematics(*dh_matrix_out)
+                fk, _ = fkine.forward_kinematics(*dh_matrix_out)
+                forward_dest_point = [fk[0,3], fk[1,3], fk[2,3]]
+                max_decimal_error = 3 # set max decimail error to the same accuracy as IK, 3 decmial places
+                np.testing.assert_array_almost_equal(np.array(dest_point), np.array(forward_dest_point), max_decimal_error)
             except Exception as e:
                 print(e)
-            forward_dest_point = [fk[0,3], fk[1,3], fk[2,3]]
-            max_decimal_error = 3 # set max decimail error to the same accuracy as IK, 3 decmial places
-            np.testing.assert_array_almost_equal(np.array(dest_point), np.array(forward_dest_point), max_decimal_error)
 
 def suite():
     suite = unittest.TestSuite()
